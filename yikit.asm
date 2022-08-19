@@ -3,7 +3,11 @@
 
 ;-------------- VARIABLE DECLARATIONS ---------------------
 .data
-  msg1   db     "LOLLL"
+  PrintMenumsg1   db     "Enter the process you want to carry >> $"
+  PrintMenu1      db     "1.Member Menu$"
+  PrintMenu2      db     "2.Register Member$"
+  PrintMenu3      db     "3.Book Loan List$"
+  PrintMenu4      db     "4.Book Search$"
 
 ;-------------- END of data segment
 
@@ -67,8 +71,17 @@ newline endp
 printMenu proc
 
 
-printStr        msg1
+printStr        PrintMenu1
 call            newline
+printStr        PrintMenu2
+call            newline
+printStr        PrintMenu3
+call            newline
+printStr        PrintMenu4
+call            newline
+printStr        PrintMenumsg1
+mov ah, 01h
+int 21h
 
 ret
 
