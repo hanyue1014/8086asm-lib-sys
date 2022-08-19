@@ -1,0 +1,4 @@
+# all the build files will be ignored
+*.exe
+*.map
+*.obj
