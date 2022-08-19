@@ -60,6 +60,7 @@ newline proc
   ; restore register original data
   pop     dx
   pop     ax
+  ret
 
 newline endp
 
