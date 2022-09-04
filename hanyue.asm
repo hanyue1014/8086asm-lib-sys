@@ -7,6 +7,8 @@
   greetLoginMsg   db      "Welcome, Admin, please enter password: $"
   loginSuccMsg    db      "Login Success!!!$"
   loginFailMsg    db      "Wrong Password, please try again!!!$"
+  ; to store user input password, max can only 8 characters, last is $
+  passBuf         db      9 dup(?)
   password        db      "abcd1234$"
 
 ;-------------- END of data segment
@@ -77,34 +79,62 @@ main proc far
   mov     ds, ax
   
   ; the real program is actually here
-  START:
-    printChar 't'
-    call      newline
-    printChar 'b'
-    call      newline
-    printStr  testStr
-    call      newline
   STARTLOGIN:
     mov         bx, 0
     printStr    greetLoginMsg
-    ; get character from user 1 by one, outputting * for every character they entered, directly tell them wrong password if any is unequal
-    PASS_CHAR_EQUAL:
+    ; get character from user 1 by one, outputting * for every character they entered
+    INPUT_PASS:
       mov     ah, 07h
       int     21h
+      cmp     al, 0dh              ; check if user input is new line
+      je      INPUT_FINISH
       printChar   "*"              ; at least user know they typed a char
-      cmp     password[bx], "$"    ; if already checked until end of password, then password is correct
-      je      LOGINPASS
-      cmp     al, password[bx]     ; if havent check until end of password, compare if they are equal
+      mov     passBuf[bx], al      ; put the inputted character into passBuf
+      cmp     bx, 8                ; only allow 8 characters, put the last char as $
+      jl      INCREMENT_INPUT_PW
+      jge     INPUT_MORE_THAN_NINE
+    INCREMENT_INPUT_PW:
       inc     bx
-      je      PASS_CHAR_EQUAL
-      jne     PASS_CHAR_NOT_EQ           ; if not equal, directly tell them to reenter password
+      jmp     INPUT_PASS
+    
+    ; if the user input more than 8 characters, we know for sure it is wrong password
+    ; We will let the user continue input (but discard the input) until the user press enter to prevent password being bruteforced
+    INPUT_MORE_THAN_NINE:
+      mov     ah, 07h
+      int     21h
+      cmp     al, 0dh
+      je      PASS_CHAR_NOT_EQ
+      printChar   "*"
+      jmp     INPUT_MORE_THAN_NINE
+
+    ; if user input enter (before 8 characters)
+    INPUT_FINISH:
+      mov     passBuf[bx], "$"         ; make it terminate
+
+      mov     bx, 0                ; clean bx before compare password
+
+    PASS_CHAR_EQUAL:
+      cmp     passBuf[bx], "$"     ; if passBuf is terminated, compare password to see if password is terminated or not
+      je      CHECK_PASS_END
+      mov     dl, passBuf[bx]
+      cmp     dl, password[bx]     ; if havent check until end of password, compare if they are equal
+      je      INCREMENT_PW_CHECK
+      jne     PASS_CHAR_NOT_EQ           ; if not equal, tell them to reenter password
     PASS_CHAR_NOT_EQ:
       call      newline
       printStr  loginFailMsg
       call      newline
       jmp       STARTLOGIN         ; wrong password lol, please login again
+    INCREMENT_PW_CHECK:
+      inc       bx
+      jmp       PASS_CHAR_EQUAL
+    CHECK_PASS_END:
+      cmp       password[bx], "$"
+      je        LOGIN_PASS
+      jne       PASS_CHAR_NOT_EQ
 
-  LOGINPASS:
+  LOGIN_PASS:
+    call        newline
     printStr    loginSuccMsg
     
   ; end of real program
