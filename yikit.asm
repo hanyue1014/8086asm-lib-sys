@@ -15,9 +15,9 @@
   PrintMenu5      db     "5.Quit Program$"
   
   ;=============== data for book search func =====================
-  ;BookSearchHeader1    db     " ==================================$"
-  ;BookSearchHeader2    db     "|            Book Search          |$"
-  ;BookSearchHeader3    db     " ==================================$"
+  BookSearchHeader1    db     " ==================================$"
+  BookSearchHeader2    db     "|            Book Search          |$"
+  BookSearchHeader3    db     " ==================================$"
   BookSearchMenu1     db      " 1 .Computer Science$"
   BookSearchMenu2     db      " 2 .English$"
   BookSearchMenu3     db      " 3 .Mathematics$"
@@ -167,12 +167,12 @@ printMenu endp
 
 ;=================== Book Search =============================
 bookSearch proc
-;printStr      BookSearchHeader1
-;call          newline
-;printStr      BookSearchHeader2
-;call          newline
-;printStr      BookSearchHeader3
-;call          newline
+printStr      BookSearchHeader1
+call          newline
+printStr      BookSearchHeader2
+call          newline
+printStr      BookSearchHeader3
+call          newline
 printStr      BookSearchMenu1
 call          newline
 printStr      BookSearchMenu2
