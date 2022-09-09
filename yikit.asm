@@ -12,6 +12,7 @@
   PrintMenu2      db     "2.Register Member$"
   PrintMenu3      db     "3.Book Loan List$"
   PrintMenu4      db     "4.Book Search$"
+  PrintMenu5      db     "5.Quit Program$"
 
 ;-------------- END of data segment
 
@@ -137,7 +138,14 @@ printStr        PrintMenu4
 call            newline
 mov ah,02h			;pls prepare i want to set cursor position
 mov bh,00h			;set cursur in current video page
-mov dh,15		;set cursor at row 12
+mov dh,14		;set cursor at row 12
+mov dl,20		;set cursor at column 39
+int 10h			;carry out operation
+printStr        PrintMenu5
+call            newline
+mov ah,02h			;pls prepare i want to set cursor position
+mov bh,00h			;set cursur in current video page
+mov dh,16		;set cursor at row 12
 mov dl,20		;set cursor at column 39
 int 10h			;carry out operation
 printStr        PrintMenumsg1
