@@ -22,7 +22,24 @@
   BookSearchMenu2     db      " 2 .English$"
   BookSearchMenu3     db      " 3 .Mathematics$"
   BookSearchMenu4     db      " 4 .Back$"
-
+  BookSearchMsg       db      "Enter the action you want to perform>>$"
+  BookSearchUsrInput    db    ?
+  Shelf1              db      " 1. C++, 2. Java,  3. C#,  4. Php$"
+  Shelf2              db      " 5. Harry Porter, 6. William Shakespeare$"
+  Shelf3              db      " 7.Calculus , 8. statistics, 9. discrete Math$"
+  BookLocation1       db      "Shelf 1 row 2$"
+  BookLocation2       db      "Shelf 1 row 1$"
+  BookLocation3       db      "Shelf 2 row 1$"
+  BookLocation4       db      "Shelf 2 row 4$"
+  BookLocation5       db      "Shelf 3 row 2$"
+  BookLocation6       db      "Shelf 3 row 5$"
+  BookLocation7       db      "Shelf 4 row 6$"
+  BookLocation8       db      "Shelf 5 row 7$"
+  BookLocation9       db      "Shelf 1 row 5$"
+  BookLocationMsg     db      "What location of book do you want to find >>$"
+  S1input             db      ?
+  S2input             db      ?
+  S3input             db      ?
 ;-------------- END of data segment
 
 ;-------------- CODES go here -----------------------------
@@ -181,6 +198,100 @@ printStr      BookSearchMenu3
 call          newline
 printStr      BookSearchMenu4
 call          newline
+printStr      BookSearchMsg
+mov ah,01h
+int 21h
+call newline
+mov BookSearchUsrInput,al
+
+    cmp BookSearchUsrInput,"1"
+    je s1
+    cmp BookSearchUsrInput,"2"
+    je middle
+    cmp BookSearchUsrInput,"3"
+    je middle2
+    ;cmp BookSearchUsrInput,3
+    ;jmp shelf3
+s1:
+    printStr Shelf1
+    call newline
+    printStr BookLocationMsg
+    mov ah,01h
+    int 21h
+    call newline
+    mov S1input,al
+    cmp S1input,"1"
+    je BLoc1
+    cmp S1input,"2"
+    je BLoc2
+    cmp S1input,"3"
+    je Bloc3
+    cmp S1input,"4"
+    je Bloc4
+    jmp quit
+middle:
+    jmp s2
+middle2:
+    jmp s3
+BLoc1:
+    printStr    BookLocation1
+    jmp quit
+BLoc2:
+    printStr    BookLocation2
+    jmp quit
+BLoc3:
+    printStr    BookLocation3
+    jmp quit
+BLoc4:
+    printStr    BookLocation4
+    jmp quit
+
+
+s2:
+    printStr  Shelf2
+    call newline
+    printStr BookLocationMsg
+    mov ah,01h
+    int 21h
+    call newline
+    mov S2input,al
+    cmp S2input,"5"
+    je BLoc5
+    cmp S2input,"6"
+    je BLoc6
+    jmp quit
+BLoc5:
+   printStr    BookLocation5
+    jmp quit
+BLoc6:
+   printStr    BookLocation6
+    jmp quit
+
+s3:
+    printStr  Shelf3
+    call newline
+    printStr BookLocationMsg
+    mov ah,01h
+    int 21h
+    call newline
+    mov S3input,al
+    cmp S3input,"7"
+    je BLoc7
+    cmp S3input,"8"
+    je BLoc8
+    cmp S3input,"9"
+    je BLoc9
+    jmp quit
+BLoc7:
+    printStr   BookLocation7
+    jmp quit
+BLoc8:
+    printStr    BookLocation8
+    jmp quit
+BLoc9:
+    printStr    BookLocation9
+    jmp quit
+quit:
 ret
 bookSearch endp
 ;------- main function ------------------------------------
