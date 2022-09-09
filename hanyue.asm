@@ -48,6 +48,24 @@ printStr macro str
   pop     ax
 
 endm printStr
+
+setCursp macro page, row, col
+
+  push    ax
+  push    bx
+  push    dx
+
+  mov     ah,02h	  		
+  mov     bh, page			; set cursor at given page
+  mov     dh, row 			; set cursor at given row
+  mov     dl, col   		; set cursor at given column
+  int     10h			      
+
+  pop     dx
+  pop     bx
+  pop     ax
+
+endm setCursp
 ;------ END MACRO DECLARATIONS ----------------------------
 
 ;------ FUNCTION DECLARATIONS -----------------------------
@@ -81,9 +99,9 @@ clear proc
   
   ; screen clearing
   mov     ax, 0600h
-  mov     bh, 71h
+  mov     bh, 0Fh
   mov     cx, 0000h
-  mov     dx, 184fh
+  mov     dx, 18ffh
   int     10h
 
   pop     dx
@@ -93,14 +111,8 @@ clear proc
   ret
 clear endp
 
-;------- main function ------------------------------------
-main proc far
-
-  ; initialize data segment
-  mov     ax, @data
-  mov     ds, ax
-  
-  ; the real program is actually here
+; function for login
+login proc
   STARTLOGIN:
     mov         bx, 0
     printStr    greetLoginMsg
@@ -158,6 +170,21 @@ main proc far
   LOGIN_PASS:
     call        newline
     printStr    loginSuccMsg
+  ret
+login endp
+
+;------- main function ------------------------------------
+main proc far
+
+  ; initialize data segment
+  mov     ax, @data
+  mov     ds, ax
+  
+  ; the real program is actually here
+  call    login
+  call    clear
+  setCursp 00h, 06, 20
+  call    login
     
   ; end of real program
   
