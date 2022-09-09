@@ -69,6 +69,28 @@ newline proc
   ret
 newline endp
 
+; when used, scroll by one screen
+clear proc
+
+  push    ax
+  push    bx
+  push    cx
+  push    dx
+  
+  ; screen clearing
+  mov     ax, 0600h
+  mov     bh, 71h
+  mov     cx, 0000h
+  mov     dx, 184fh
+  int     10h
+
+  pop     dx
+  pop     cx
+  pop     bx
+  pop     ax
+  ret
+clear endp
+
 ;------- main function ------------------------------------
 main proc far
 
