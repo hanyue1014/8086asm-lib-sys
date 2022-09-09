@@ -3,7 +3,8 @@
 
 ;-------------- VARIABLE DECLARATIONS ---------------------
 .data
-  testStr         db      "LOL This is a test$"
+
+  ; ---------------------- LOGIN VARS ------------------------------
   greetLoginMsg   db      "Welcome, Admin, please enter password: $"
   loginSuccMsg    db      "Login Success!!!$"
   loginFailMsg    db      "Wrong Password, please try again!!!$"
@@ -11,11 +12,23 @@
   passBuf         db      9 dup(?)
   password        db      "abcd1234", 0
 
+  ; ---------------- COMMON VAR FOR FILE HANDLING ------------------
+  fileHandle      dw      ?
+  fileMsg         db      ?
+
+  ; --------------- VAR FOR TESTING TODO: REMOVE -------------------
+  testFile        db      "test.txt", 0
+
+  ; ---------------- VARS FOR MEMBER OPTIONS -----------------------
+
 ;-------------- END of data segment
 
 ;-------------- CODES go here -----------------------------
 .code
 
+; ALL MACRO WILL NOT ALTER THE REGISTER VALUES, IT WILL BE RESTORED WHEN IT ENDS
+; EXCEPT FOR THOSE LABELLED NO RETAIN 
+;   (Use case: jump out of range [repeated push and pop make the code long, so possible jump out of range])
 ;---- SELF_DEFINED MACRO (utility functions that are reusable) ----
 
 ; Prints the char given
@@ -34,6 +47,7 @@ printChar macro char
 
 endm printChar
 
+; Prints string given
 ; Parameter: str -> $ terminated string VARIABLE to be printed
 printStr macro str
 
@@ -49,6 +63,10 @@ printStr macro str
 
 endm printStr
 
+; sets cursor position on the terminal
+; Parameter: page -> the page, 
+;            row -> row for cursor to be placed on, 
+;            col -> column for cursor to be placed on
 setCursp macro page, row, col
 
   push    ax
@@ -66,6 +84,26 @@ setCursp macro page, row, col
   pop     ax
 
 endm setCursp
+
+; opens the file and set the global variable fileHandle if open successfully
+; if open fail, carry flag will be on
+; Parameter: fileName -> 0 terminated string containing the file name of the file to be opened
+openFile macro fileName
+
+  push  ax
+  push  dx
+
+  ; open file (TODO: Check CF for success: CF on if fail, err code at AX, if success, AX is file handle)
+  mov   ah, 3dh       ; open file instruction
+  mov   al, 2         ; open in read, write mode
+  lea   dx, fileName
+  int   21h
+  mov   fileHandle, ax
+
+  pop   dx
+  pop   ax
+
+endm openFile
 ;------ END MACRO DECLARATIONS ----------------------------
 
 ;------ FUNCTION DECLARATIONS -----------------------------
@@ -173,6 +211,44 @@ login proc
   ret
 login endp
 
+; TODO: See if this function is rlly needed, if no, remove
+; this function assumes the handler for the file is stored in the fileHandle global variable
+; moves the cursor of the file in fileHandler to the start of file (0, 0)
+moveFileCursSt proc
+
+  
+  ret
+moveFileCursSt endp
+
+; this function assumes the handler for the file is stored in the fileHandle global variable
+; moves the cursor of the file in fileHandler to the EndOfFile
+moveFileCursEnd proc
+
+  
+  ret
+moveFileCursEnd endp
+
+; this function assumes the handler for the file is stored in the fileHandle global variable
+; prints the content in the file until EOF
+printFile proc
+
+  ; read file (CF on if fail, err code at AX, if success, AX is num bytes actually read, 0 IF when call eh time alrd at EOF, rmb move the cursor back to position 0 first when repeated read without reopening)
+  READ_FILE_CHAR:
+    mov   bx, fileHandle
+    lea   dx, fileMsg
+    mov   cx, 1         ; num bytes to read (will be reading byte by byte repeatedly until EOF)
+    mov   ah, 3fh       ; read file instruction
+    int   21h
+    ; compare if at EOF, if no, print the character read and loop again
+    cmp   ax, 0
+    je    PRINT_FILE_END
+    printChar fileMsg
+    jmp   READ_FILE_CHAR
+
+  PRINT_FILE_END:  
+    ret
+printFile endp
+
 ;------- main function ------------------------------------
 main proc far
 
@@ -182,7 +258,8 @@ main proc far
   
   ; the real program is actually here
   
-  call    login
+  openFile testFile
+  call     printFile
     
   ; end of real program
   
