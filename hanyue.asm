@@ -7,9 +7,9 @@
   greetLoginMsg   db      "Welcome, Admin, please enter password: $"
   loginSuccMsg    db      "Login Success!!!$"
   loginFailMsg    db      "Wrong Password, please try again!!!$"
-  ; to store user input password, max can only 8 characters, last is $
+  ; to store user input password, max can only 8 characters
   passBuf         db      9 dup(?)
-  password        db      "abcd1234$"
+  password        db      "abcd1234", 0
 
 ;-------------- END of data segment
 
@@ -143,12 +143,12 @@ login proc
 
     ; if user input enter (before 8 characters)
     INPUT_FINISH:
-      mov     passBuf[bx], "$"         ; make it terminate
+      mov     passBuf[bx], 0       ; make it terminate
 
       mov     bx, 0                ; clean bx before compare password
 
     PASS_CHAR_EQUAL:
-      cmp     passBuf[bx], "$"     ; if passBuf is terminated, compare password to see if password is terminated or not
+      cmp     passBuf[bx], 0       ; if passBuf is terminated, compare password to see if password is terminated or not
       je      CHECK_PASS_END
       mov     dl, passBuf[bx]
       cmp     dl, password[bx]     ; if havent check until end of password, compare if they are equal
@@ -163,7 +163,7 @@ login proc
       inc       bx
       jmp       PASS_CHAR_EQUAL
     CHECK_PASS_END:
-      cmp       password[bx], "$"
+      cmp       password[bx], 0
       je        LOGIN_PASS
       jne       PASS_CHAR_NOT_EQ
 
@@ -181,9 +181,7 @@ main proc far
   mov     ds, ax
   
   ; the real program is actually here
-  call    login
-  call    clear
-  setCursp 00h, 06, 20
+  
   call    login
     
   ; end of real program
