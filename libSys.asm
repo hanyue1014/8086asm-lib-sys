@@ -46,6 +46,24 @@ printStr macro str
   pop     ax
 
 endm printStr
+
+setCursp macro page, row, col
+
+  push    ax
+  push    bx
+  push    dx
+
+  mov     ah,02h	  		
+  mov     bh, page			; set cursor at given page
+  mov     dh, row 			; set cursor at given row
+  mov     dl, col   		; set cursor at given column
+  int     10h			      
+
+  pop     dx
+  pop     bx
+  pop     ax
+
+endm setCursp
 ;------ END MACRO DECLARATIONS ----------------------------
 
 ;------ FUNCTION DECLARATIONS -----------------------------
