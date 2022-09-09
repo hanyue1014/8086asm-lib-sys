@@ -13,6 +13,15 @@
   PrintMenu3      db     "3.Book Loan List$"
   PrintMenu4      db     "4.Book Search$"
   PrintMenu5      db     "5.Quit Program$"
+  
+  ;=============== data for book search func =====================
+  ;BookSearchHeader1    db     " ==================================$"
+  ;BookSearchHeader2    db     "|            Book Search          |$"
+  ;BookSearchHeader3    db     " ==================================$"
+  BookSearchMenu1     db      " 1 .Computer Science$"
+  BookSearchMenu2     db      " 2 .English$"
+  BookSearchMenu3     db      " 3 .Mathematics$"
+  BookSearchMenu4     db      " 4 .Back$"
 
 ;-------------- END of data segment
 
@@ -156,6 +165,24 @@ ret
 
 printMenu endp
 
+;=================== Book Search =============================
+bookSearch proc
+;printStr      BookSearchHeader1
+;call          newline
+;printStr      BookSearchHeader2
+;call          newline
+;printStr      BookSearchHeader3
+;call          newline
+printStr      BookSearchMenu1
+call          newline
+printStr      BookSearchMenu2
+call          newline
+printStr      BookSearchMenu3
+call          newline
+printStr      BookSearchMenu4
+call          newline
+ret
+bookSearch endp
 ;------- main function ------------------------------------
 main proc far
 
@@ -164,7 +191,8 @@ main proc far
   mov     ds, ax
   
   ; the real program is actually here
-  call      printMenu
+  
+  call      bookSearch
   ; end of real program
   
   ; tell os to end program
