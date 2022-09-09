@@ -53,7 +53,7 @@ setCursp macro page, row, col
   push    bx
   push    dx
 
-  mov     ah,02h	  		
+  mov     ah, 02h	  		
   mov     bh, page			; set cursor at given page
   mov     dh, row 			; set cursor at given row
   mov     dl, col   		; set cursor at given column
