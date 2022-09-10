@@ -275,11 +275,11 @@ START_CAL_LOAN:
       ROYAL_MEMBER:
         call newline
         printStr discountMsg
-        mov ah, 0    ;clear ax
+        mov ah, 0         ;clear ax
         mov al, 0
-        mov al, ans  ;move original price into al
-        mul discount ;*80
-        div hundred  ;/100, to get the price after discount
+        mov al, ans       ;move original price into al
+        mul discount      ;*80
+        div hundred       ;/100, to get the price after discount
         mov quotient, al  ;store the whole number
         mov remain, ah    ;store the decimal point
         mov ah, 0         ;clear ax
@@ -287,56 +287,56 @@ START_CAL_LOAN:
         mov al, quotient  ;move whole number into al to divide
         div hundred
         mov temp, ah      ;store the remainder for whole number 
-        add al, 30H
+        add al, 30H       ;ready to print the first digit of the whole number
         printChar al
-        mov ah, 0
+        mov ah, 0         ;clear ax
         mov al, 0
-        mov al, temp 
+        mov al, temp      ;move remainder to register for calculation
         div ten 
-        mov quotient, al
-        mov temp, ah
-        add quotient, 30H 
-        add temp, 30H      
+        mov quotient, al  ;protect second digit of the whole number
+        mov temp, ah      ;protect third digit of the whole number
+        add quotient, 30H ;ready to print second digit
+        add temp, 30H     ;ready to prit the third digit
         printChar quotient
         printChar temp
-        printChar '.'
-        mov ah, 0
+        printChar '.'     ;print '.' to seperate decimal and whole number
+        mov ah, 0         ;clear ax
         mov al, 0
-        mov al, remain
+        mov al, remain    ;move the decimal point into register for cal
         div ten 
-        mov quotient, al
-        mov remain, ah
-        add quotient, 30H
+        mov quotient, al  ;protect first digit of decimal point
+        mov remain, ah    ;protect second digit of decimal point
+        add quotient, 30H ;ready to print first digit of decimal point
         printChar quotient
-        add remain, 30H
+        add remain, 30H   ;ready to print second digit of decimal point
         printChar remain
         jmp TOTAL_PRICE_INPUT
 
       NOT_ROYAL_MEMBER:
         call newline
-        printStr nonRoyalMsg
+        printStr nonRoyalMsg  ;tell user not royal member no discount
         call newline
         printStr discountMsg
-        mov ah, 0
+        mov ah, 0             ;clear ax
         mov al, 0
-        mov al, ans
+        mov al, ans           ;move original price into al
         div hundred 
-        mov quotient, al
-        mov remain, ah
-        mov ah, 0
+        mov quotient, al      ;protect first digit of the price
+        mov remain, ah        ;protect second and third digit of the price
+        mov ah, 0             ;clear ax
         mov al, 0
-        add quotient, 30H
+        add quotient, 30H     ;ready to print first digit
         printChar quotient
-        mov al, remain
+        mov al, remain        ;move second and third digit into register for cal
         div ten 
-        mov quotient, al
-        mov remain, ah
-        add quotient, 30H
-        printChar quotient
-        add remain, 30H
+        mov quotient, al      ;protect second digit of the price
+        mov remain, ah        ;protect third digit of the price
+        add quotient, 30H     ;ready to print second digit
+        printChar quotient    
+        add remain, 30H       ;ready to print third digit
         printChar remain
-        printChar '.'
-        printChar '0'
+        printChar '.'         ;seperate whole number and decimal point
+        printChar '0'         ;since no discount will not have decimal point so can direct print '0''0'
         printChar '0'
         jmp TOTAL_PRICE_INPUT
 
@@ -348,19 +348,19 @@ START_CAL_LOAN:
       INPUT_wNUMBER:          ;input for whole number
         mov ah, 01h           ;ready to input char
         int 21h
-        sub al, 30H           ;turn to decimal
+        sub al, 30H           ;turn to int
         mul hundred           ;get the first input as hundred
         mov priceWholeNum, al
         mov ah, 0
         mov al, 0
         mov ah, 01h           ;ready to input char
         int 21h
-        sub al, 30H           ;turn to decimal
+        sub al, 30H           ;turn to int
         mul ten               ;get the second input as ten
         add priceWholeNum, al ;add the ans with the first input
         mov ah, 01h           ;ready to input char
         int 21h
-        sub al, 30H           ;turn to decimal
+        sub al, 30H           ;turn to int
         add priceWholeNum, al ;add the ans with the last input
         printChar '.'
       
