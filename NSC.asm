@@ -3,23 +3,33 @@
 
 ;-------------- VARIABLE DECLARATIONS ---------------------
 .data
-  hundred        db 100
-  ten            db 10
-  chargeLessDate db 2
-  chargeMinDate  db 3
-  remain         db ?
-  quotient       db ?
-  loanDateMsg    db "Please enter the days of the book loan: $"
-  invalidInput   db "Invalid Input. Please enter integer.$"
-  loanAmountMsg  db "The total amount need to be paid: RM$"
-  chargeOverDate db "180$"
-  loanPayMsg     db "Enter the price paid by the user:$" 
-  loanReturnMsg  db "The balance needed to be return: $"
+  hundred         db 100
+  ten             db 10
+  discount        db 80
+  chargeLessDate  db 2
+  chargeMinDate   db 3
+  temp            db ?
+  ans             db ?
+  remain          db ?
+  quotient        db ?
+  priceWholeNum   db ?
+  priceDecimalNum db ?
+  loanDateMsg     db "Please enter the days of the book loan: $"
+  invalidInput    db "Invalid Input. Please enter integer.$"
+  loanAmountMsg   db "The total amount need to be paid: RM $"
+  chargeOverDate  db "180$"
+  memberMsg       db "Is the member a royal member (Y for yes/ N for no): $"
+  nonRoyalMsg     db "Not royal member cannot enjoy 20% discount.$"
+  invalidChoice   db "Invalid Input. Please only input 'Y' or 'N'.$"
+  discountMsg     db "The price after discount: RM $"
+  loanPayMsg      db "Enter the price paid by the user: RM $" 
+  loanReturnMsg   db "The balance needed to be return: RM $"
   
   dateBookLoan label byte
   max          db    3
   act          db    ?
-  data         db    3 dup ('')   
+  data         db    3 dup ('') 
+   
 ;-------------- END of data segment
 
 ;-------------- CODES go here -----------------------------
@@ -122,23 +132,21 @@ START_CAL_LOAN:
   mov cx, 2
   mov si, 0
   CHECK_VALID:
-    cmp data[si], 30H
-    jl  INVALID_INPUT
-    cmp data[si], 39H
-    jg  INVALID_INPUT
-    inc si
+    cmp  data[si], 30H
+    jl   INVALID_INPUT
+    cmp  data[si], 39H
+    jg   INVALID_INPUT
+    inc  si
     loop CHECK_VALID
-    jmp VALID_INPUT
+    jmp  VALID_INPUT
   
   INVALID_INPUT:
-    call newline
+    call     newline
     printStr invalidInput
-    call newline
+    call     newline
     jmp      START_CAL_LOAN
 
-
   call newline
-  ;printStr data         ;test for input received
 
   call newline
   
@@ -159,12 +167,12 @@ START_CAL_LOAN:
     jg calLoanOver
     jle calLoanLessMiddle
 
-    
     OverLimit:
       call newline
+      mov ans, 180
       printStr loanAmountMsg
       printStr chargeOverDate
-      jmp EXIT
+      jmp CHECK_MEMBER
     
     calLoanLessMiddle:
       jmp calLoanLess
@@ -172,45 +180,207 @@ START_CAL_LOAN:
     calLoanOver:          ;function for date more than 21
       mul chargeMinDate   ;the book loan date will mul 2 bcuz 1 day charge RM3
       div hundred         ;quotient in al, remain in ah
-      mov quotient, al  
-      add quotient, 30H
+      mov quotient, al 
+      add quotient, 30H   ;add 30H to ready to print out the ans
+      mov ans, al         ;protect the first digit
+      mov remain, ah      ;protect the remainder
+      mov ah, 0
+      mov al, 0
+      mov al, ans 
+      mul hundred         ;multiply the first digit with hundred to get it original value
+      mov ans, al         ;move the first digit value into ans
       call newline
       printStr loanAmountMsg
       printChar quotient
-      mov remain, ah
       mov ax, 0
       mov ah, 0
       mov al, remain  
       div ten             
-      mov quotient, al
-      add quotient, 30H    
+      mov quotient, al    ;protect the second digit
+      mov remain, ah      ;protect the last digit  
+      mov ah, 0
+      mov al, 0
+      mov al, quotient    ;move the second digit back to al register to multiply
+      mul ten             ;multiply the second digit with ten to get it original value
+      ;mov temp, al       ;protect the ans
+      add ans, al         ;add the first digit and second digit
+      add quotient, 30H   ;add 30H to ready to print out the ans
       printChar quotient  
-      mov remain, ah
-      add remain, 30H
+      mov al, remain
+      add ans, al         ;add the last digit with the ans
+      add remain, 30H     ;add 30H to ready to print out the ans
       printChar remain
-      jmp EXIT
+      jmp CHECK_MEMBER
     
     calLoanLess:           ;function for date less than 21
-      mul chargeLessDate   ;the book loan date will mul 2 bcuz 1 day charge RM2
-      div hundred          ;quotient in al, remain in ah
-      mov quotient, al  
-      add quotient, 30H
+      mul chargeMinDate   ;the book loan date will mul 2 bcuz 1 day charge RM3
+      div hundred         ;quotient in al, remain in ah
+      mov quotient, al 
+      add quotient, 30H   ;add 30H to ready to print out the ans
+      mov ans, al         ;protect the first digit
+      mov remain, ah      ;protect the remainder
+      mov ah, 0
+      mov al, 0
+      mov al, ans 
+      mul hundred         ;multiply the first digit with hundred to get it original value
+      mov ans, al         ;move the first digit value into ans
       call newline
       printStr loanAmountMsg
       printChar quotient
-      mov remain, ah
       mov ax, 0
       mov ah, 0
       mov al, remain  
       div ten             
-      mov quotient, al
-      add quotient, 30H    
+      mov quotient, al    ;protect the second digit
+      mov remain, ah      ;protect the last digit  
+      mov ah, 0
+      mov al, 0
+      mov al, quotient    ;move the second digit back to al register to multiply
+      mul ten             ;multiply the second digit with ten to get it original value
+      ;mov temp, al        ;protect the ans
+      add ans, al       ;add the first digit and second digit
+      add quotient, 30H   ;add 30H to ready to print out the ans
       printChar quotient  
-      mov remain, ah
-      add remain, 30H
+      mov al, remain
+      add ans, al         ;add the last digit with the ans
+      add remain, 30H     ;add 30H to ready to print out the ans
       printChar remain
-      jmp EXIT
+      jmp CHECK_MEMBER
   
+    ;check member for discount
+    CHECK_MEMBER:
+      call newline
+      mov ah, 0
+      mov al, 0
+      printStr memberMsg
+      mov ah, 01h
+      int 21h
+      jmp CHECK_VALID_CHOICE
+
+      CHECK_VALID_CHOICE:
+        cmp al, 'Y'  ;check is the input is 'Y'(59H)
+        je ROYAL_MEMBER
+        cmp al, 'N'  ;check is the input is 'N'(4eH)
+        je NOT_ROYAL_MEMBER_MIDDLE
+        jne INVALID_INPUT_CHOICE
+
+      INVALID_INPUT_CHOICE:
+        call newline
+        printStr invalidChoice
+        jmp CHECK_MEMBER
+      
+      NOT_ROYAL_MEMBER_MIDDLE:
+        jmp NOT_ROYAL_MEMBER
+
+      ROYAL_MEMBER:
+        call newline
+        printStr discountMsg
+        mov ah, 0    ;clear ax
+        mov al, 0
+        mov al, ans  ;move original price into al
+        mul discount ;*80
+        div hundred  ;/100, to get the price after discount
+        mov quotient, al  ;store the whole number
+        mov remain, ah    ;store the decimal point
+        mov ah, 0         ;clear ax
+        mov al, 0
+        mov al, quotient  ;move whole number into al to divide
+        div hundred
+        mov temp, ah      ;store the remainder for whole number 
+        add al, 30H
+        printChar al
+        mov ah, 0
+        mov al, 0
+        mov al, temp 
+        div ten 
+        mov quotient, al
+        mov temp, ah
+        add quotient, 30H 
+        add temp, 30H      
+        printChar quotient
+        printChar temp
+        printChar '.'
+        mov ah, 0
+        mov al, 0
+        mov al, remain
+        div ten 
+        mov quotient, al
+        mov remain, ah
+        add quotient, 30H
+        printChar quotient
+        add remain, 30H
+        printChar remain
+        jmp TOTAL_PRICE_INPUT
+
+      NOT_ROYAL_MEMBER:
+        call newline
+        printStr nonRoyalMsg
+        call newline
+        printStr discountMsg
+        mov ah, 0
+        mov al, 0
+        mov al, ans
+        div hundred 
+        mov quotient, al
+        mov remain, ah
+        mov ah, 0
+        mov al, 0
+        add quotient, 30H
+        printChar quotient
+        mov al, remain
+        div ten 
+        mov quotient, al
+        mov remain, ah
+        add quotient, 30H
+        printChar quotient
+        add remain, 30H
+        printChar remain
+        printChar '.'
+        printChar '0'
+        printChar '0'
+        jmp TOTAL_PRICE_INPUT
+
+    ;ready to input for price paid
+    TOTAL_PRICE_INPUT:
+      call newline
+      printStr loanPayMsg
+    
+      INPUT_wNUMBER:          ;input for whole number
+        mov ah, 01h           ;ready to input char
+        int 21h
+        sub al, 30H           ;turn to decimal
+        mul hundred           ;get the first input as hundred
+        mov priceWholeNum, al
+        mov ah, 0
+        mov al, 0
+        mov ah, 01h           ;ready to input char
+        int 21h
+        sub al, 30H           ;turn to decimal
+        mul ten               ;get the second input as ten
+        add priceWholeNum, al ;add the ans with the first input
+        mov ah, 01h           ;ready to input char
+        int 21h
+        sub al, 30H           ;turn to decimal
+        add priceWholeNum, al ;add the ans with the last input
+        printChar '.'
+      
+      INPUT_dnumber:            ;input for decimal number
+        mov ah, 01h
+        int 21h
+        sub al, 30H             ;turn to decimal
+        mul ten                 ;get it as first digit
+        mov pricedecimalnum, al
+        mov ah, 0
+        mov al, 0
+        mov ah, 01h
+        int 21h
+        sub al, 30H             ;turn to decimal
+        add pricedecimalnum, al ;add up with the second digit
+      
+
+
+         
+
   ; end of real program
   
   ; tell os to end program
