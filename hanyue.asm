@@ -30,6 +30,7 @@
 
   ; --------------- CREATEMEMBER VARS ------------------------------
   createMemPrompt db      "Enter the user id desired: $"
+  memExistsMsg    db      "Sorry, this ID already exists, please select a new one$"
 
   ; --------------- VAR FOR TESTING TODO: REMOVE -------------------
   testFile        db      "test.txt", 0
@@ -135,7 +136,6 @@ openFile macro fileName, mode, handle
   push  ax
   push  dx
 
-  ; open file (TODO: Check CF for success: CF on if fail, err code at AX, if success, AX is file handle)
   mov   ah, 3dh           ; open file instruction
   mov   al, mode          ; open in read, write mode
   lea   dx, fileName
@@ -335,9 +335,19 @@ createMem proc
 
   USER_ID_ENF_CH:
     ; set the . back (previously replaced by enter key)
-    mov      memFileName[6], "."
+    mov        memFileName[6], "."
     ; TODO: Use open file to check if user already exist, for now assume user not exist if open fail
+    openFile   memFileName, 0, fileHandle
+    ; assume that open no fail means member already exists
+    jnc        CREATE_MEM_EXISTS
     createFile memFileName, 0, fileHandle
+    ; TODO: write to file if create success
+    jmp        CREATE_MEM_END
+
+  CREATE_MEM_EXISTS:
+    printStr   memExistsMsg
+    call       newline
+    jmp        CREATE_MEM_START
   
   CREATE_MEM_END:
     ret
@@ -355,7 +365,7 @@ main proc far
   
   ; openFile testFile, 2, fileHandle
   ; createFile testCreate, 0, fileHandle
-  
+  call    createMem
 
   ; printFile assumes the file handle for the file to be printed is already in bx when called
   ; mov      bx, fileHandle
