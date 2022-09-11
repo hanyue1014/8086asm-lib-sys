@@ -2,3 +2,6 @@
 *.EXE
 *.MAP
 *.OBJ
+
+# all txt files
+*.txt
