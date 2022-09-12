@@ -157,7 +157,7 @@ endm openFile
 
 ; writes size byte of the string passed in msg to the handle (file opened)
 ; upon using this macro, please check CF
-; if open fail, carry flag will be on and variable passed to handle will be the error code
+; if write fail, CF will be on
 ; Parameter: handle   -> handle of the file that will be written to
 ;            size     -> show many bytes from msg to write into the file
 ;            msg      -> variable that contains the string to be written to the file
