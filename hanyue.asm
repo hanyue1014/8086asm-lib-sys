@@ -31,6 +31,14 @@
   ; --------------- CREATEMEMBER VARS ------------------------------
   createMemPrompt db      "Enter the user id desired: $"
   memExistsMsg    db      "Sorry, this ID already exists, please select a new one$"
+  fullNamePrompt  db      "Enter the name desired: $"
+  memFileDivider  db      "|", 40 dup("-"), "|", 13
+  fullNameLabel   db      "|Name     |"
+  fullNameField   label   byte
+  fullNameMaxLen  db      30
+  fullNameActLen  db      ?
+  fullNameInput   db      30 dup(" "), "|",  13    ; auto padded weee, and the close the field
+  genderInput     db      ?, 29 dup(" "), "|", 13  ; first is gender char (F/M), then the padding, then newline
 
   ; --------------- VAR FOR TESTING TODO: REMOVE -------------------
   testFile        db      "test.txt", 0
@@ -146,6 +154,33 @@ openFile macro fileName, mode, handle
   pop   ax
 
 endm openFile
+
+; writes size byte of the string passed in msg to the handle (file opened)
+; upon using this macro, please check CF
+; if open fail, carry flag will be on and variable passed to handle will be the error code
+; Parameter: handle   -> handle of the file that will be written to
+;            size     -> show many bytes from msg to write into the file
+;            msg      -> variable that contains the string to be written to the file
+writeFile macro handle, size, msg
+
+  push  ax
+  push  bx
+  push  cx
+  push  dx
+
+  ; write to file (nid check CF for successCF on if fail, err code at AX, if success, AX is num bytes actually written)
+  mov   bx, handle
+  mov   cx, size
+  lea   dx, msg
+  mov   ah, 40h       ; write to file instruction
+  int   21h
+
+  pop   dx
+  pop   cx
+  pop   bx
+  pop   ax
+
+endm writeFile
 ;------ END MACRO DECLARATIONS ----------------------------
 
 ;------ FUNCTION DECLARATIONS -----------------------------
@@ -332,22 +367,39 @@ createMem proc
   USER_ID_NT_ENF_CH:
     printStr memNotEnfChar
     jmp      CREATE_MEM_START
-
-  USER_ID_ENF_CH:
-    ; set the . back (previously replaced by enter key)
-    mov        memFileName[6], "."
-    ; TODO: Use open file to check if user already exist, for now assume user not exist if open fail
-    openFile   memFileName, 0, fileHandle
-    ; assume that open no fail means member already exists
-    jnc        CREATE_MEM_EXISTS
-    createFile memFileName, 0, fileHandle
-    ; TODO: write to file if create success
-    jmp        CREATE_MEM_END
-
+  
+  ; this label actually belongs to USER_ID)ENF_CH, scared long jump needed, so put up here
   CREATE_MEM_EXISTS:
     printStr   memExistsMsg
     call       newline
     jmp        CREATE_MEM_START
+
+  USER_ID_ENF_CH:
+    ; set the . back (previously replaced by enter key)
+    mov        memFileName[6], "."
+    ; Use open file to check if user already exist, for now assume user not exist if open fail
+    openFile   memFileName, 0, fileHandle
+    ; assume that open no fail means member already exists
+    jnc        CREATE_MEM_EXISTS
+    createFile memFileName, 0, fileHandle
+    ; TODO: input ic (validate included), input tel no., input bday, input gender (F/M), input royalty member (Y/N)
+    ; ask for name
+    printStr   fullNamePrompt
+    ; input full name
+    mov     ah, 0ah   ; input str function
+    lea     dx, fullNameField
+    int     21h
+    ; remove the enter key user inputted
+    mov     bx, 0000h                         ; empty bx first
+    mov     bl, fullNameActLen
+    mov     fullNameInput[bx], " "
+    call    newline
+    ;------ Format file and write to file section for name ------
+    writeFile  fileHandle, 43, memFileDivider
+    writeFile  fileHandle, 11, fullNameLabel
+    writeFile  fileHandle, 32, fullNameInput
+    writeFile  fileHandle, 43, memFileDivider
+    jmp        CREATE_MEM_END
   
   CREATE_MEM_END:
     ret
