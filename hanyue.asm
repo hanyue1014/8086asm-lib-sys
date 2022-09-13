@@ -19,30 +19,36 @@
   MEM_FILE        label   byte
   memFileMaxLen   db      7                ; max is 6, 7th for enter char
   memFileActLen   db      ?
-  memFileName     db      "XXXXXX.txt", 0  ; 6 X to be replaced with uID
+  memFileName     db      "XXXXXX.txt", 0  ; 6 X to be replaced with user ID
   memNotEnfChar   db      "User ID does not contain 6 characters!!!$"
 
   ; ---------------- VAR FOR file operation function ---------------
+  ; assumption: only one file will be opened at one time, so will only make one fileHandle
   fileHandle      dw      ?
-  fileMsg         db      ?
+  ; will be reading a file char by char, fileMsg will be whr to store the read data
+  fileMsg         db      ? 
   readFileErrMsg  db      "Read file failed, please try again$"
   closeFileErrMsg db      "Close file failed, ignoring$"
 
   ; --------------- CREATEMEMBER VARS ------------------------------
   createMemPrompt db      "Enter the user id desired: $"
   memExistsMsg    db      "Sorry, this ID already exists, please select a new one$"
-  fullNamePrompt  db      "Enter the name desired: $"
   memFileDivider  db      "|", 40 dup("-"), "|", 13
+  
+  ; --------------- GETFULLNAME VARS -------------------------------
+  fullNamePrompt  db      "Enter the name desired: $"
   fullNameLabel   db      "|Name     |"
   fullNameField   label   byte
   fullNameMaxLen  db      30
   fullNameActLen  db      ?
   fullNameInput   db      30 dup(" "), "|",  13    ; auto padded weee, and the close the field
+
+  ; --------------- GETGENDER VARS ---------------------------------
+  genderPrompt    db      "Enter your gender (F/M/U): $"
+  invalidGender   db      "Invalid gender! Only UPPERCASE (F/M/U) accepted!$"
+  genderLabel     db      "|Gender   |"
   genderInput     db      ?, 29 dup(" "), "|", 13  ; first is gender char (F/M), then the padding, then newline
 
-  ; --------------- VAR FOR TESTING TODO: REMOVE -------------------
-  testFile        db      "test.txt", 0
-  testCreate      db      "testCr.txt", 0
 
   ; ---------------- VARS FOR MEMBER OPTIONS -----------------------
 
@@ -298,7 +304,7 @@ moveFileCursSt proc
 moveFileCursSt endp
 
 ; this function assumes the handler for the file is stored in the fileHandle global variable
-; moves the cursor of the file in fileHandler to the EndOfFile
+; moves the cursor of the file in fileHandle to the EndOfFile
 moveFileCursEnd proc
 
   
@@ -307,8 +313,8 @@ moveFileCursEnd endp
 
 ; THIS FUNCTION DOES NOT RETAIN REGISTER VALUES, REGISTER WILL BE OVERWRITTEN UPON USING THIS
 ; this function assumes the handler for the file to read is already in bx
-; prints the content in the file until EOF
-printFile proc
+; prints the content in the file char by char until EOF
+printFileC proc
 
   ; read file (CF on if fail, err code at AX, if success, AX is num bytes actually read, 0 IF when call eh time alrd at EOF, rmb move the cursor back to position 0 first when repeated read without reopening)
   READ_FILE_CHAR:
@@ -330,7 +336,7 @@ printFile proc
 
   PRINT_FILE_END:  
     ret
-printFile endp
+printFileC endp
 
 ; always close a file if u opened it
 ; this function overwrites register values
@@ -348,6 +354,67 @@ closeFile proc
   CLOSE_FILE_END:
     ret
 closeFile endp
+
+writeMemFileDiv proc
+
+  writeFile  fileHandle, 43, memFileDivider
+  ret
+
+writeMemFileDiv endp
+
+; will be used by createMem to separate logic out
+; gets the full name of a member and writes to the file
+getFullName proc
+
+  printStr   fullNamePrompt
+  ; input full name
+  mov     ah, 0ah   ; input str function
+  lea     dx, fullNameField
+  int     21h
+  ; remove the enter key user inputted
+  mov     bx, 0000h                         ; empty bx first
+  mov     bl, fullNameActLen
+  mov     fullNameInput[bx], " "
+  call    newline
+  ;------ Format file and write to file section for name ------
+  writeFile  fileHandle, 11, fullNameLabel
+  writeFile  fileHandle, 32, fullNameInput
+
+  ret
+
+getFullName endp
+
+; gets and validates gender, can be F - female, M - male, U - undefined (only uppercase)
+getGender proc
+
+  START_GENDER_PROMPT:
+    printStr    genderPrompt
+    ; input char for gender
+    mov     ah, 01h
+    int     21h
+
+    ; check for gender
+    cmp     al, "F"
+    je     VALID_GENDER
+    cmp     al, "M"
+    je     VALID_GENDER
+    cmp     al, "U"
+    je     VALID_GENDER
+
+    ; if all the compares up thr did not jump to VALID_GENDER, then it's invalid
+    printStr    invalidGender
+    jmp     START_GENDER_PROMPT
+  
+  VALID_GENDER:
+    mov     genderInput, al
+    ; ------ format and write to gender section -------
+    writeFile  fileHandle, 11, genderLabel
+    writeFile  fileHandle, 32, genderInput
+
+  END_GENDER_PROMPT:
+    ret
+
+getGender endp
 
 createMem proc
 
@@ -381,24 +448,15 @@ createMem proc
     openFile   memFileName, 0, fileHandle
     ; assume that open no fail means member already exists
     jnc        CREATE_MEM_EXISTS
+    ; TODO: check if createFile failed
     createFile memFileName, 0, fileHandle
     ; TODO: input ic (validate included), input tel no., input bday, input gender (F/M), input royalty member (Y/N)
-    ; ask for name
-    printStr   fullNamePrompt
-    ; input full name
-    mov     ah, 0ah   ; input str function
-    lea     dx, fullNameField
-    int     21h
-    ; remove the enter key user inputted
-    mov     bx, 0000h                         ; empty bx first
-    mov     bl, fullNameActLen
-    mov     fullNameInput[bx], " "
-    call    newline
-    ;------ Format file and write to file section for name ------
-    writeFile  fileHandle, 43, memFileDivider
-    writeFile  fileHandle, 11, fullNameLabel
-    writeFile  fileHandle, 32, fullNameInput
-    writeFile  fileHandle, 43, memFileDivider
+    ; format the table by printing dividers in between
+    call       writeMemFileDiv
+    ; name field
+    call       getFullname
+    call       getGender
+    
     jmp        CREATE_MEM_END
   
   CREATE_MEM_END:
@@ -421,7 +479,7 @@ main proc far
 
   ; printFile assumes the file handle for the file to be printed is already in bx when called
   ; mov      bx, fileHandle
-  ; call     printFile
+  ; call     printFileC
 
   mov      bx, fileHandle
   call     closeFile
