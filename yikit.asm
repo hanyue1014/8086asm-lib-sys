@@ -18,10 +18,10 @@
   BookSearchHeader1    db     " ==================================$"
   BookSearchHeader2    db     "|            Book Search          |$"
   BookSearchHeader3    db     " ==================================$"
-  BookSearchMenu1     db      " 1 .Computer Science$"
-  BookSearchMenu2     db      " 2 .English$"
-  BookSearchMenu3     db      " 3 .Mathematics$"
-  BookSearchMenu4     db      " 4 .Back$"
+  BookSearchMenu1     db      "   1 .Computer Science$"
+  BookSearchMenu2     db      "   2 .English$"
+  BookSearchMenu3     db      "   3 .Mathematics$"
+  BookSearchMenu4     db      "   4 .Back$"
   BookSearchMsg       db      "Enter the action you want to perform>>$"
   BookSearchUsrInput    db    ?
   Shelf1              db      " 1. C++, 2. Java,  3. C#,  4. Php$"
@@ -40,6 +40,17 @@
   S1input             db      ?
   S2input             db      ?
   S3input             db      ?
+  ;=================IC input ===============
+  msgIcInput          db       "Please enter your Ic number >>$"
+  ICInvalid           db       "You enter an invalid input $"
+  ICValid           db       "You enter an valid input$"
+  ICInput             db       ?
+  userIc               db      ?
+  Input_label       label       Byte
+  Icmaxlen            db        13
+  Icactlen            db        ?
+  inputBuffer         db        13 dup("")
+  
 ;-------------- END of data segment
 
 ;-------------- CODES go here -----------------------------
@@ -106,8 +117,11 @@ mov ax,0600h		;pls prepare ,i want to scroll screen up (06h),scroll entire page 
 	mov bh,00011110b			;set bliking effect , bg-red,fg -yellow (1 100 1110)
 	mov cx,0000h		;window size starts from here 
 	mov dx,184fh		;windows size ends here
-	int 10h			;carry out the operation
+    
+    int 10h			;carry out the operation
 
+
+	
 	;the following section show cursor position
 	mov ah,02h			;pls prepare i want to set cursor position
 	mov bh,00h			;set cursur in current video page
@@ -115,7 +129,13 @@ mov ax,0600h		;pls prepare ,i want to scroll screen up (06h),scroll entire page 
 	mov dl,20		;set cursor at column 39
 	int 10h			;carry out operation
 
-	
+mov ax,0600h
+mov bh,11011110b
+mov ch,05
+mov cl,15           ;window size starts from here 
+mov dh,07
+mov dl,69	;windows size ends here
+int 10h	
 printStr        PrintHeader1
 call            newline
 mov ah,02h			;pls prepare i want to set cursor position
@@ -139,6 +159,13 @@ mov bh,00h			;set cursur in current video page
 mov dh,10		;set cursor at row 12
 mov dl,20		;set cursor at column 39
 int 10h			;carry out operation
+mov ax,0600h
+mov bh,00111110b
+mov ch,08
+mov cl,15           ;window size starts from here 
+mov dh,18
+mov dl,69	;windows size ends here
+int 10h	
 printStr        PrintMenu1
 call            newline
 mov ah,02h			;pls prepare i want to set cursor position
@@ -294,6 +321,51 @@ BLoc9:
 quit:
 ret
 bookSearch endp
+
+;==============Input Ic =====================================
+
+inputIc proc
+printStr    msgIcInput
+mov ah,0ah
+lea dx,Input_label
+int 21h
+call newline
+mov si,0
+here:
+; check if si is 11 (0 - 11)
+cmp si, 12
+je  valid
+mov al,inputBuffer[si]
+
+cmp al,"0"
+jb invalid
+cmp al,"9"
+ja invalid
+jmp increment
+
+increment:
+  inc si
+  jmp here
+;cmp ICInput[si],"0"
+;jge valid
+;cmp ICInput[si],"9"
+;jb valid
+;cmp ICInput[si],"48"
+;jge digit
+;cmp ICInput[si],"48"
+;jl special
+
+invalid:
+    printStr ICInvalid
+    jmp quit
+    
+valid:
+    printStr ICValid
+    jmp quit
+    
+ret
+inputIc endp
+
 ;------- main function ------------------------------------
 main proc far
 
@@ -303,7 +375,7 @@ main proc far
   
   ; the real program is actually here
   
-  call      bookSearch
+  call      inputIc
   ; end of real program
   
   ; tell os to end program
