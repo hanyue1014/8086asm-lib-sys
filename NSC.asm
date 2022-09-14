@@ -25,6 +25,7 @@
   memberMsg       db "Is the member a royal member (Y for yes/ N for no): $"
   nonRoyalMsg     db "Not royal member cannot enjoy 20% discount.$"
   invalidChoice   db "Invalid Input. Please only input 'Y' or 'N'.$"
+  priceNotEnough  db "The price need to be paid is not enough.$"
   discountMsg     db "The price after discount: RM $"
   loanPayMsg      db "Enter the price paid by the user: RM $" 
   loanReturnMsg   db "The balance needed to be return: RM $"
@@ -403,13 +404,32 @@ START_CAL_LOAN:
           jg INVALID
         sub al, 30H             ;turn to decimal
         add priceDecimalNum, al ;add up with the second digit
-        jmp PRINT_PRICE
+        jmp VALID_CHECK
   
       INVALID:
         call     newline
         printStr invalidInput
         call     newline
         jmp      TOTAL_PRICE_INPUT
+
+      VALID_CHECK:
+        mov ah, 0               ;clear ax
+        mov al, 0
+        mov al, priceWholeNum 
+        cmp al, wholeNum 
+        jl INVALID_PRICE 
+        jg PRINT_PRICE  
+        mov ah, 0               ;clear ax
+        mov al, 0
+        mov al, priceDecimalNum
+        cmp al, decimalNum
+        jl INVALID_PRICE
+        jmp PRINT_PRICE 
+
+      INVALID_PRICE:
+        call newline
+        printStr priceNOtEnough
+        jmp TOTAL_PRICE_INPUT
 
       PRINT_PRICE:
         call newline
@@ -421,94 +441,94 @@ START_CAL_LOAN:
         jge NORMAL_SUBTRACT      
         jl OVER_SUBTRACT_MIDDLE
 
-      OVER_SUBTRACT_MIDDLE:
-        jmp OVER_SUBTRACT
+        OVER_SUBTRACT_MIDDLE:
+          jmp OVER_SUBTRACT
 
-      NORMAL_SUBTRACT:
-        mov ah, 0               ;clear ax
-        mov al, 0
-        mov al, priceDecimalNum ;move decimal point(sen) paid by user into register to subtract
-        sub al, decimalNum      ;subtract with the price needed to pay
-        mov decimalChange, al   ;protect the answer
-        mov ah, 0               ;claer ax
-        mov al, 0 
-        mov al, priceWholeNum   ;move whole number paid by the user into register to subtract
-        sub al, wholeNum        ;subtract with the price needed to pay
-        mov wholeChange, al     ;protect the answer
-        mov ah, 0               ;clear ax
-        mov al, 0
-        mov al, wholeChange
-        div hundred             ;seperate the numbers
-        mov quotient, al        ;protect the first digit
-        mov remain, ah          ;protect the second and third digit
-        add quotient, 30H       ;ready to print the first digit
-        printChar quotient      
-        mov ah, 0               ;clear ax
-        mov al, 0
-        mov al, remain          ;move second and third digit into register to seperate both digits
-        div ten 
-        mov quotient, al        ;protect the second digit
-        mov remain, ah          ;protect the third digit
-        add quotient, 30H       ;ready to print the second digit
-        add remain, 30H         ;ready to print the third digit
-        printChar quotient
-        printChar remain
-        printChar '.'           ;print as the seperator for whole number and decimal
-        mov ah, 0               ;clear ax
-        mov al, 0
-        mov al, decimalChange   ;move decimal point(sen) paid by the user into register to subtract
-        div ten 
-        mov quotient, al        ;protect the first digit
-        mov remain, ah          ;protect the second digit
-        add quotient, 30H       ;ready to print the first digit
-        add remain, 30H         ;ready to print the second digit
-        printChar quotient
-        printChar remain
-        jmp EXIT
-      
-      OVER_SUBTRACT:
-        mov ah, 0               ;clear ax
-        mov al, 0
-        add priceDecimalNum, 100
-        sub priceWholeNum, 1
-        mov al, priceDecimalNum
-        sub al, decimalNum 
-        mov decimalChange, al
-        mov ah, 0               ;clear ax
-        mov al, 0
-        mov al, priceWholeNum 
-        sub al, wholeNum 
-        mov wholeChange, al
-        mov ah, 0               ;clear ax
-        mov al, 0
-        mov al, wholeChange
-        div hundred             ;seperate the numbers
-        mov quotient, al        ;protect the first digit
-        mov remain, ah          ;protect the second and third digit
-        add quotient, 30H       ;ready to print the first digit
-        printChar quotient      
-        mov ah, 0               ;clear ax
-        mov al, 0
-        mov al, remain          ;move second and third digit into register to seperate both digits
-        div ten 
-        mov quotient, al        ;protect the second digit
-        mov remain, ah          ;protect the third digit
-        add quotient, 30H       ;ready to print the second digit
-        add remain, 30H         ;ready to print the third digit
-        printChar quotient
-        printChar remain
-        printChar '.'           ;print as the seperator for whole number and decimal
-        mov ah, 0               ;clear ax
-        mov al, 0
-        mov al, decimalChange   ;move decimal point(sen) paid by the user into register to subtract
-        div ten 
-        mov quotient, al        ;protect the first digit
-        mov remain, ah          ;protect the second digit
-        add quotient, 30H       ;ready to print the first digit
-        add remain, 30H         ;ready to print the second digit
-        printChar quotient
-        printChar remain
-        jmp EXIT
+        NORMAL_SUBTRACT:
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, priceDecimalNum ;move decimal point(sen) paid by user into register to subtract
+          sub al, decimalNum      ;subtract with the price needed to pay
+          mov decimalChange, al   ;protect the answer
+          mov ah, 0               ;claer ax
+          mov al, 0 
+          mov al, priceWholeNum   ;move whole number paid by the user into register to subtract
+          sub al, wholeNum        ;subtract with the price needed to pay
+          mov wholeChange, al     ;protect the answer
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, wholeChange
+          div hundred             ;seperate the numbers
+          mov quotient, al        ;protect the first digit
+          mov remain, ah          ;protect the second and third digit
+          add quotient, 30H       ;ready to print the first digit
+          printChar quotient      
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, remain          ;move second and third digit into register to seperate both digits
+          div ten 
+          mov quotient, al        ;protect the second digit
+          mov remain, ah          ;protect the third digit
+          add quotient, 30H       ;ready to print the second digit
+          add remain, 30H         ;ready to print the third digit
+          printChar quotient
+          printChar remain
+          printChar '.'           ;print as the seperator for whole number and decimal
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, decimalChange   ;move decimal point(sen) paid by the user into register to subtract
+          div ten 
+          mov quotient, al        ;protect the first digit
+          mov remain, ah          ;protect the second digit
+          add quotient, 30H       ;ready to print the first digit
+          add remain, 30H         ;ready to print the second digit
+          printChar quotient
+          printChar remain
+          jmp EXIT
+        
+        OVER_SUBTRACT:
+          mov ah, 0               ;clear ax
+          mov al, 0
+          add priceDecimalNum, 100
+          sub priceWholeNum, 1
+          mov al, priceDecimalNum
+          sub al, decimalNum 
+          mov decimalChange, al
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, priceWholeNum 
+          sub al, wholeNum 
+          mov wholeChange, al
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, wholeChange
+          div hundred             ;seperate the numbers
+          mov quotient, al        ;protect the first digit
+          mov remain, ah          ;protect the second and third digit
+          add quotient, 30H       ;ready to print the first digit
+          printChar quotient      
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, remain          ;move second and third digit into register to seperate both digits
+          div ten 
+          mov quotient, al        ;protect the second digit
+          mov remain, ah          ;protect the third digit
+          add quotient, 30H       ;ready to print the second digit
+          add remain, 30H         ;ready to print the third digit
+          printChar quotient
+          printChar remain
+          printChar '.'           ;print as the seperator for whole number and decimal
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, decimalChange   ;move decimal point(sen) paid by the user into register to subtract
+          div ten 
+          mov quotient, al        ;protect the first digit
+          mov remain, ah          ;protect the second digit
+          add quotient, 30H       ;ready to print the first digit
+          add remain, 30H         ;ready to print the second digit
+          printChar quotient
+          printChar remain
+          jmp EXIT
 
   ; end of real program
   
