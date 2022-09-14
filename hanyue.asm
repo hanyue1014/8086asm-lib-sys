@@ -58,8 +58,7 @@
   genderPromptOp3 db      "[U]ndefined$"
   invalidGender   db      "Invalid gender! Only UPPERCASE (F/M/U) accepted!$"
   genderLabel     db      "|Gender    |"
-  genderInput     db      ?, 29 dup(" "), "|", 13  ; first is gender char (F/M), then the padding, then newline
-
+  genderInput     db      ?, 29 dup(" "), "|", 13  ; first is gender char (F/M), then the padding, then newline  
 
   ; ---------------- VARS FOR MEMBER OPTIONS -----------------------
 
@@ -490,24 +489,35 @@ getGender proc
 
 getGender endp
 
+; this function handles the input of member ID (placed in the MEM_FILE label), and the validation
+inputMemId proc
+
+  mov     ah, 0ah   ; input str function
+  lea     dx, MEM_FILE
+  int     21h
+  call    newline
+  ; if not enough six character, prompt the user
+  cmp     memFileActLen, 6
+  jl      USER_ID_NT_ENF_CH
+  jmp     INPUT_MEM_ID_END
+  USER_ID_NT_ENF_CH:
+    printStr memNotEnfChar
+    call     newline
+    jmp      CREATE_MEM_START
+
+  INPUT_MEM_ID_END:
+    ; set the . back (previously replaced by enter key)
+    mov        memFileName[6], "."
+    ret
+
+inputMemId endp
+
 createMem proc
 
   CREATE_MEM_START:
     printStr createMemPrompt
-    ; input user id (will be used as the file name)
-    mov     ah, 0ah   ; input str function
-    lea     dx, MEM_FILE
-    int     21h
-    call    newline
-    ; if not enough six character, prompt the user
-    cmp     memFileActLen, 6
-    jl      USER_ID_NT_ENF_CH
-    ; it wont be longer than 7 as max len is 7
+    call    inputMemId
     jmp     USER_ID_ENF_CH
-
-  USER_ID_NT_ENF_CH:
-    printStr memNotEnfChar
-    jmp      CREATE_MEM_START
   
   ; this label actually belongs to USER_ID)ENF_CH, scared long jump needed, so put up here
   CREATE_MEM_EXISTS:
@@ -516,13 +526,10 @@ createMem proc
     jmp        CREATE_MEM_START
 
   USER_ID_ENF_CH:
-    ; set the . back (previously replaced by enter key)
-    mov        memFileName[6], "."
     ; Use open file to check if user already exist, for now assume user not exist if open fail
     openFile   memFileName, 0, fileHandle
     ; assume that open no fail means member already exists
     jnc        CREATE_MEM_EXISTS
-    ; TODO: check if createFile failed
     createFile memFileName, 0, fileHandle
     jc         CREATE_MEM_FAIL
     ; TODO: input ic (validate included), input tel no., input bday, input gender (F/M), input royalty member (Y/N)
@@ -548,6 +555,12 @@ createMem proc
     ret
 
 createMem endp
+
+printMemDetails proc
+
+
+
+printMemDetails endp
 
 ;------- main function ------------------------------------
 main proc far
