@@ -588,7 +588,7 @@ createMem proc
     jnc        CREATE_MEM_EXISTS
     createFile memFileName, 0, fileHandle
     jc         CREATE_MEM_FAIL
-    ; TODO: input ic (validate included), input tel no., input bday, input gender (F/M), input royalty member (Y/N)
+    ; TODO: input ic (validate included), input hp. no., input r. member (Y/N) (royalty member)
     ; format the table by printing dividers in between
     call       writeMemFileDiv
     ; user id field (table heading)
