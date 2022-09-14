@@ -34,7 +34,7 @@
   closeFileErrMsg db      "Close file failed, ignoring$"
 
   ; --------------- CREATEMEMBER VARS ------------------------------
-  createMemPrompt db      "Enter the user id desired: $"
+  createMemPrompt db      "Enter the member id desired: $"
   memExistsMsg    db      "Sorry, this ID already exists, please select a new one$"
   memFileDivider  db      "|", 41 dup("-"), "|", 13
 
@@ -61,6 +61,20 @@
   genderInput     db      ?, 29 dup(" "), "|", 13  ; first is gender char (F/M), then the padding, then newline  
 
   ; ---------------- VARS FOR MEMBER OPTIONS -----------------------
+  memberIDPrompt  db      "Enter the member's ID: $"
+  memberOpPrompt1 db      "Member Options$"
+  memberOpPrompt2 db      "1. Loan Book$"
+  memberOpPrompt3 db      "2. Return Book$"
+  memberOpPrompt4 db      "3. Member Details$"
+  memberOpPrompt5 db      "b. Back$"
+  memberOpPrompt6 db      "Enter your choice: $"
+
+  ; to let us know if we are serving a member, 1 means yes, 0 or others means no
+  hasMember       db      0
+  memNotExistMsg  db      "Sorry, member not found, did you registered?$"
+
+  ; --------------- MEMBER MENU VARS --------------------------------
+  memMenuOpIn     db      ?
 
 ;-------------- END of data segment
 
@@ -552,13 +566,55 @@ createMem proc
     jmp       CREATE_MEM_START
 
   CREATE_MEM_END:
+    ; rmb to close files
+    mov       bx, fileHandle
+    call      closeFile
     ret
 
 createMem endp
 
+; asks for member id, if not found, ends, if found, memFile will be set, hasMember will become 1
+getMember proc 
+  printStr memberIDPrompt
+  call    inputMemId
+  openFile   memFileName, 0, fileHandle
+  ; go to print menu if member exists
+  jnc     GET_MEMBER_EXISTS
+  printStr   memNotExistMsg
+  jmp     GET_MEMBER_END
+
+  GET_MEMBER_EXISTS:
+    mov   hasMember, 1
+  
+  GET_MEMBER_END:
+    ret
+
+getMember endp
+
+printMemberOptions proc
+
+  printStr    memberOpPrompt1
+  call        newline
+  printStr    memberOpPrompt2
+  call        newline
+  printStr    memberOpPrompt3
+  call        newline
+  printStr    memberOpPrompt4
+  call        newline
+  printStr    memberOpPrompt5
+  call        newline
+  printStr    memberOpPrompt6
+  
+  ret
+
+printMemberOptions endp
+
 printMemDetails proc
 
+  mov     bx, fileHandle
+  call    printFileC
 
+  ret
 
 printMemDetails endp
 
@@ -573,14 +629,38 @@ main proc far
   
   ; openFile testFile, 2, fileHandle
   ; createFile testCreate, 0, fileHandle
-  call    createMem
+  ; call    createMem
+  call    getMember
+  MEMBER_OPTIONS:
+    cmp     hasMember, 0
+    je      EXIT
+    call    printMemberOptions
+    ; input for option
+    mov     ah, 01h
+    int     21h
+    mov     memMenuOpIn, al
+    call    newline
+
+    cmp     memMenuOpIn, "1"
+    je      LOAN_BOOK_OPTION
+    cmp     memMenuOpIn, "2"
+    je      RETURN_BOOK_OPTION
+    cmp     memMenuOpIn, "3"
+    je      MEMBER_DETAILS_OPTION
+    cmp     memMenuOpIn, "b"
+    je      EXIT
+    jmp     MEMBER_OPTIONS
+
+  LOAN_BOOK_OPTION:
+
+  RETURN_BOOK_OPTION:
+
+  MEMBER_DETAILS_OPTION:
+    call    printMemDetails
 
   ; printFile assumes the file handle for the file to be printed is already in bx when called
   ; mov      bx, fileHandle
   ; call     printFileC
-
-  mov      bx, fileHandle
-  call     closeFile
     
   ; end of real program
   
