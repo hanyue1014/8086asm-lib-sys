@@ -3,6 +3,10 @@
 
 ;-------------- VARIABLE DECLARATIONS ---------------------
 .data
+  ; ------ from NSC, don't copy to main when compile ------
+  thousand        dw      1000    ; copy this
+  hundred         db      100
+  ten             db      10
 
   ; ---------------------- LOGIN VARS ------------------------------
   greetLoginMsg   db      "Welcome, Admin, please enter password: $"
@@ -84,6 +88,11 @@
   loanBookFileH   dw      ?
   ; file name (will be used by both loan and return book)
   loanBookFileN   db      "lnList.txt", 0
+
+  ; --------------- WRITESYSDATE VARS -------------------------------
+  ; DD to be replaced by date, MM to be replaced by month, YYYY to be replaced by year
+  dateLabel       db      "[DD/MM/YYYY]"
+  loanDateRemain  dw      ?     ; could be > 255 as year divide
 
 ;-------------- END of data segment
 
@@ -546,6 +555,7 @@ getGender proc
 getGender endp
 
 ; this function handles the input of member ID (placed in the MEM_FILE label), and the validation
+; rmb check carry flag, carry flag will be turned on if this function fails
 inputMemId proc
 
   mov     ah, 0ah   ; input str function
@@ -559,11 +569,12 @@ inputMemId proc
   USER_ID_NT_ENF_CH:
     printStr memNotEnfChar
     call     newline
-    jmp      CREATE_MEM_START
+    stc               ; set carry flag
 
   INPUT_MEM_ID_END:
     ; set the . back (previously replaced by enter key)
     mov        memFileName[6], "."
+    clc               ; clear carry flag
     ret
 
 inputMemId endp
@@ -573,7 +584,8 @@ createMem proc
   CREATE_MEM_START:
     printStr createMemPrompt
     call    inputMemId
-    jmp     USER_ID_ENF_CH
+    ; if carry flag on means inputMemId has error
+    jc      CREATE_MEM_START
   
   ; this label actually belongs to USER_ID)ENF_CH, scared long jump needed, so put up here
   CREATE_MEM_EXISTS:
@@ -617,8 +629,13 @@ createMem endp
 
 ; asks for member id, if not found, ends, if found, memFile will be set, hasMember will become 1
 getMember proc 
-  printStr memberIDPrompt
-  call    inputMemId
+  GET_MEMBER_START:
+    printStr memberIDPrompt
+    call    inputMemId
+    ; if carry flag on means inputMemId gt error
+    jc      GET_MEMBER_START
+
+  ; assume open no fail is member exist, if open fail is member not exist
   openFile   memFileName, 0, fileHandle
   ; go to print menu if member exists
   jnc     GET_MEMBER_EXISTS
@@ -660,6 +677,57 @@ printMemDetails proc
 
 printMemDetails endp
 
+; gets system date, parses it and writes it to file with [DD/MM/YYYY]
+; assumes that lnList.txt is already opened and loanBookFileH is already set to the handle
+writeSysDate proc
+
+  ; get system date CX = year (1980-2099). DH = month. DL = day
+  mov     ah, 2ah
+  int     21h
+
+  ; convert day to ascii and set it into field
+  mov     ah, 00h
+  mov     al, dl
+  div     ten
+  add     al, 30h
+  mov     dateLabel[1], al
+  add     ah, 30h
+  mov     dateLabel[2], ah
+
+  ; same principle, convert month to ascii and set it into field
+  mov     ah, 00h
+  mov     al, dh
+  div     ten
+  add     al, 30h
+  mov     dateLabel[4], al
+  add     ah, 30h
+  mov     dateLabel[5], ah
+
+  ; year is slightly more mahuan, since its word (1000+)
+  mov     dx, 0000h    ; empty dx first
+  mov     ax, cx       ; put the year to cx, ready for dividing
+  div     thousand     
+  ; am very certain that the quotient will only be single digit
+  add     al, 30h
+  mov     dateLabel[7], al
+  mov     ax, dx       ; remainder at dx, now can move back to ax for further parsing
+  div     hundred
+  add     al, 30h
+  mov     dateLabel[8], al
+  mov     al, ah       ; move the remainder to al, reset ah with 0 for further parsing (eg. remainder 25h, nid make ax become 0025h)
+  mov     ah, 00h
+  div     ten
+  add     al, 30h
+  mov     dateLabel[9], al
+  add     ah, 30h
+  mov     dateLabel[10], ah
+
+  writeFile   loanBookFileH, 12, dateLabel
+
+  ret
+
+writeSysDate endp
+
 ; writes to lnList.txt
 ; assumes lnList.txt already exists on the machine
 memLoanBook proc
@@ -669,12 +737,7 @@ memLoanBook proc
   ; open loanBookFileN in write mode, set handle to loanBookFileH
   openFile  loanBookFileN, 1, loanBookFileH
   
-  ; TODO: Confirm use system date bttr or call user input bttr
-  ; get system date CX = year (1980-2099). DH = month. DL = day
-  mov     ah, 2ah
-  int     21h
-
-  ; convert day to ascii
+  call    writeSysDate
 
   ; rmb to close file ;))
   mov     bx, loanBookFileH
