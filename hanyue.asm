@@ -36,15 +36,15 @@
   ; --------------- CREATEMEMBER VARS ------------------------------
   createMemPrompt db      "Enter the user id desired: $"
   memExistsMsg    db      "Sorry, this ID already exists, please select a new one$"
-  memFileDivider  db      "|", 40 dup("-"), "|", 13
+  memFileDivider  db      "|", 41 dup("-"), "|", 13
 
   ; --------------- WRITEMEMID VARS -------------------------------
   memIDLabel      db      "| "
-  memIDPadding    db      33 dup(" "), "|", 13
+  memIDPadding    db      34 dup(" "), "|", 13
   
   ; --------------- GETFULLNAME VARS -------------------------------
   fullNamePrompt  db      "Enter the name desired: $"
-  fullNameLabel   db      "|Name     |"
+  fullNameLabel   db      "|Name      |"
   fullNameField   label   byte
   fullNameMaxLen  db      30
   fullNameActLen  db      ?
@@ -57,7 +57,7 @@
   genderPromptOp2 db      "[M]ale$"
   genderPromptOp3 db      "[U]ndefined$"
   invalidGender   db      "Invalid gender! Only UPPERCASE (F/M/U) accepted!$"
-  genderLabel     db      "|Gender   |"
+  genderLabel     db      "|Gender    |"
   genderInput     db      ?, 29 dup(" "), "|", 13  ; first is gender char (F/M), then the padding, then newline
 
 
@@ -383,7 +383,7 @@ writeFileFail endp
 
 writeMemFileDiv proc
 
-  writeFile  fileHandle, 43, memFileDivider
+  writeFile  fileHandle, 44, memFileDivider
   ; carry flag not on, write successfully
   jnc        END_WRITE_MEM_FILE_DIV
   ; carry flag on, write to file failed, but do ntg
@@ -401,7 +401,7 @@ writeMemId proc
   jc         WRITE_MEM_ID_FAIL
   writeFile  fileHandle, 6, memFileName    ; take 6 bytes from memFileName (6 char of member id)
   jc         WRITE_MEM_ID_FAIL
-  writeFile  fileHandle, 35, memIDPadding
+  writeFile  fileHandle, 36, memIDPadding
   jc         WRITE_MEM_ID_FAIL
   jmp        END_WRITE_MEM_ID
 
@@ -429,7 +429,7 @@ getFullName proc
   mov     fullNameInput[bx], " "
   call    newline
   ;------ Format file and write to file section for name ------
-  writeFile  fileHandle, 11, fullNameLabel
+  writeFile  fileHandle, 12, fullNameLabel
   ; well, fail le we can do ntg, so just tell write failed and do ntg ba /shrug
   jc      WRITE_FULL_NAME_FAIL
   writeFile  fileHandle, 32, fullNameInput
@@ -477,7 +477,7 @@ getGender proc
   VALID_GENDER:
     mov     genderInput, al
     ; ------ format and write to gender section -------
-    writeFile  fileHandle, 11, genderLabel
+    writeFile  fileHandle, 12, genderLabel
     jc      WRITE_GENDER_FAIL
     writeFile  fileHandle, 32, genderInput
     jnc     GET_GENDER_END
