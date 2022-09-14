@@ -12,8 +12,12 @@
   ans             db ?
   remain          db ?
   quotient        db ?
+  wholeNum        db ?
+  decimalNum      db ?
   priceWholeNum   db ?
   priceDecimalNum db ?
+  decimalChange   db ?
+  wholeChange     db ?
   loanDateMsg     db "Please enter the days of the book loan: $"
   invalidInput    db "Invalid Input. Please enter integer.$"
   loanAmountMsg   db "The total amount need to be paid: RM $"
@@ -21,6 +25,7 @@
   memberMsg       db "Is the member a royal member (Y for yes/ N for no): $"
   nonRoyalMsg     db "Not royal member cannot enjoy 20% discount.$"
   invalidChoice   db "Invalid Input. Please only input 'Y' or 'N'.$"
+  priceNotEnough  db "The price need to be paid is not enough.$"
   discountMsg     db "The price after discount: RM $"
   loanPayMsg      db "Enter the price paid by the user: RM $" 
   loanReturnMsg   db "The balance needed to be return: RM $"
@@ -162,22 +167,22 @@ START_CAL_LOAN:
     add al, bl
     ;if else statement
     cmp al, 40
-    jg overLimit
+    jg OVER_LIMIT
     cmp al, 21
-    jg calLoanOver
-    jle calLoanLessMiddle
+    jg CAL_LOAN_OVER
+    jle CAL_LOAN_LESS_MIDDLE
 
-    OverLimit:
+    OVER_LIMIT:
       call newline
       mov ans, 180
       printStr loanAmountMsg
       printStr chargeOverDate
       jmp CHECK_MEMBER
     
-    calLoanLessMiddle:
-      jmp calLoanLess
+    CAL_LOAN_LESS_MIDDLE:
+      jmp CAL_LOAN_LESS
 
-    calLoanOver:          ;function for date more than 21
+    CAL_LOAN_OVER:        ;function for date more than 21
       mul chargeMinDate   ;the book loan date will mul 2 bcuz 1 day charge RM3
       div hundred         ;quotient in al, remain in ah
       mov quotient, al 
@@ -212,7 +217,7 @@ START_CAL_LOAN:
       printChar remain
       jmp CHECK_MEMBER
     
-    calLoanLess:           ;function for date less than 21
+    CAL_LOAN_LESS:        ;function for date less than 21
       mul chargeMinDate   ;the book loan date will mul 2 bcuz 1 day charge RM3
       div hundred         ;quotient in al, remain in ah
       mov quotient, al 
@@ -237,7 +242,6 @@ START_CAL_LOAN:
       mov al, 0
       mov al, quotient    ;move the second digit back to al register to multiply
       mul ten             ;multiply the second digit with ten to get it original value
-      ;mov temp, al        ;protect the ans
       add ans, al       ;add the first digit and second digit
       add quotient, 30H   ;add 30H to ready to print out the ans
       printChar quotient  
@@ -280,6 +284,8 @@ START_CAL_LOAN:
         mov al, ans       ;move original price into al
         mul discount      ;*80
         div hundred       ;/100, to get the price after discount
+        mov wholeNum, al  ;move whole number to a variable to use for changes
+        mov decimalNum, ah;move decimal to a variable to use for changes
         mov quotient, al  ;store the whole number
         mov remain, ah    ;store the decimal point
         mov ah, 0         ;clear ax
@@ -320,6 +326,8 @@ START_CAL_LOAN:
         mov ah, 0             ;clear ax
         mov al, 0
         mov al, ans           ;move original price into al
+        mov wholeNum, al     ;move the price need to pay into wholeNum
+        mov decimalNum, 0     ;since no discount decimal point will remain 0
         div hundred 
         mov quotient, al      ;protect first digit of the price
         mov remain, ah        ;protect second and third digit of the price
@@ -344,10 +352,14 @@ START_CAL_LOAN:
     TOTAL_PRICE_INPUT:
       call newline
       printStr loanPayMsg
-    
+
       INPUT_wNUMBER:          ;input for whole number
         mov ah, 01h           ;ready to input char
         int 21h
+          cmp al, 30H
+          jl INVALID
+          cmp al, 39H
+          jg INVALID
         sub al, 30H           ;turn to int
         mul hundred           ;get the first input as hundred
         mov priceWholeNum, al
@@ -355,11 +367,19 @@ START_CAL_LOAN:
         mov al, 0
         mov ah, 01h           ;ready to input char
         int 21h
+          cmp al, 30H
+          jl INVALID
+          cmp al, 39H
+          jg INVALID
         sub al, 30H           ;turn to int
         mul ten               ;get the second input as ten
         add priceWholeNum, al ;add the ans with the first input
         mov ah, 01h           ;ready to input char
         int 21h
+          cmp al, 30H
+          jl INVALID
+          cmp al, 39H
+          jg INVALID
         sub al, 30H           ;turn to int
         add priceWholeNum, al ;add the ans with the last input
         printChar '.'
@@ -367,19 +387,148 @@ START_CAL_LOAN:
       INPUT_dnumber:            ;input for decimal number
         mov ah, 01h
         int 21h
+          cmp al, 30H
+          jl INVALID
+          cmp al, 39H
+          jg INVALID
         sub al, 30H             ;turn to decimal
         mul ten                 ;get it as first digit
-        mov pricedecimalnum, al
+        mov priceDecimalNum, al
         mov ah, 0
         mov al, 0
         mov ah, 01h
         int 21h
+          cmp al, 30H
+          jl INVALID
+          cmp al, 39H
+          jg INVALID
         sub al, 30H             ;turn to decimal
-        add pricedecimalnum, al ;add up with the second digit
-      
+        add priceDecimalNum, al ;add up with the second digit
+        jmp VALID_CHECK
+  
+      INVALID:
+        call     newline
+        printStr invalidInput
+        call     newline
+        jmp      TOTAL_PRICE_INPUT
 
+      VALID_CHECK:
+        mov ah, 0               ;clear ax
+        mov al, 0
+        mov al, priceWholeNum 
+        cmp al, wholeNum 
+        jl INVALID_PRICE 
+        jg PRINT_PRICE  
+        mov ah, 0               ;clear ax
+        mov al, 0
+        mov al, priceDecimalNum
+        cmp al, decimalNum
+        jl INVALID_PRICE
+        jmp PRINT_PRICE 
 
-         
+      INVALID_PRICE:
+        call newline
+        printStr priceNOtEnough
+        jmp TOTAL_PRICE_INPUT
+
+      PRINT_PRICE:
+        call newline
+        printStr loanReturnMsg
+        mov ah, 0               ;clear ax
+        mov al, 0
+        mov al, decimalNum      ;move price need to pay by the user to al for comparison
+        cmp priceDecimalNum, al ;compare the decimal point to check wether need to lend from whole number
+        jge NORMAL_SUBTRACT      
+        jl OVER_SUBTRACT_MIDDLE
+
+        OVER_SUBTRACT_MIDDLE:
+          jmp OVER_SUBTRACT
+
+        NORMAL_SUBTRACT:
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, priceDecimalNum ;move decimal point(sen) paid by user into register to subtract
+          sub al, decimalNum      ;subtract with the price needed to pay
+          mov decimalChange, al   ;protect the answer
+          mov ah, 0               ;claer ax
+          mov al, 0 
+          mov al, priceWholeNum   ;move whole number paid by the user into register to subtract
+          sub al, wholeNum        ;subtract with the price needed to pay
+          mov wholeChange, al     ;protect the answer
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, wholeChange
+          div hundred             ;seperate the numbers
+          mov quotient, al        ;protect the first digit
+          mov remain, ah          ;protect the second and third digit
+          add quotient, 30H       ;ready to print the first digit
+          printChar quotient      
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, remain          ;move second and third digit into register to seperate both digits
+          div ten 
+          mov quotient, al        ;protect the second digit
+          mov remain, ah          ;protect the third digit
+          add quotient, 30H       ;ready to print the second digit
+          add remain, 30H         ;ready to print the third digit
+          printChar quotient
+          printChar remain
+          printChar '.'           ;print as the seperator for whole number and decimal
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, decimalChange   ;move decimal point(sen) paid by the user into register to subtract
+          div ten 
+          mov quotient, al        ;protect the first digit
+          mov remain, ah          ;protect the second digit
+          add quotient, 30H       ;ready to print the first digit
+          add remain, 30H         ;ready to print the second digit
+          printChar quotient
+          printChar remain
+          jmp EXIT
+        
+        OVER_SUBTRACT:
+          mov ah, 0               ;clear ax
+          mov al, 0
+          add priceDecimalNum, 100
+          sub priceWholeNum, 1
+          mov al, priceDecimalNum
+          sub al, decimalNum 
+          mov decimalChange, al
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, priceWholeNum 
+          sub al, wholeNum 
+          mov wholeChange, al
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, wholeChange
+          div hundred             ;seperate the numbers
+          mov quotient, al        ;protect the first digit
+          mov remain, ah          ;protect the second and third digit
+          add quotient, 30H       ;ready to print the first digit
+          printChar quotient      
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, remain          ;move second and third digit into register to seperate both digits
+          div ten 
+          mov quotient, al        ;protect the second digit
+          mov remain, ah          ;protect the third digit
+          add quotient, 30H       ;ready to print the second digit
+          add remain, 30H         ;ready to print the third digit
+          printChar quotient
+          printChar remain
+          printChar '.'           ;print as the seperator for whole number and decimal
+          mov ah, 0               ;clear ax
+          mov al, 0
+          mov al, decimalChange   ;move decimal point(sen) paid by the user into register to subtract
+          div ten 
+          mov quotient, al        ;protect the first digit
+          mov remain, ah          ;protect the second digit
+          add quotient, 30H       ;ready to print the first digit
+          add remain, 30H         ;ready to print the second digit
+          printChar quotient
+          printChar remain
+          jmp EXIT
 
   ; end of real program
   
