@@ -660,9 +660,18 @@ printMemDetails proc
 
 printMemDetails endp
 
+; writes to lnList.txt
+; assumes lnList.txt already exists on the machine
 memLoanBook proc
 
+  ; read system date (maybe?), example msg will be [DD/MM/YYYY] XXXXXX loan 20 dup('y')
+  ; where XXXXXX is member ID, 20 dup('y') is book name
+  ; open loanBookFileN in write mode, set handle to loanBookFileH
+  openFile  loanBookFileN, 1, loanBookFileH
 
+  ; rmb to close file ;))
+  mov     bx, loanBookFileH
+  call    closeFile
 
 memLoanBook endp
 
