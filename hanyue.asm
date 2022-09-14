@@ -27,13 +27,20 @@
   fileHandle      dw      ?
   ; will be reading a file char by char, fileMsg will be whr to store the read data
   fileMsg         db      ? 
+  ; this is createFileErrMsg, too long, wojuedebuxing
+  crtFileErrMsg   db      "Create file failed, please try again$"
   readFileErrMsg  db      "Read file failed, please try again$"
+  writeFileErrMsg db      "Write to file failed, ignoring$"
   closeFileErrMsg db      "Close file failed, ignoring$"
 
   ; --------------- CREATEMEMBER VARS ------------------------------
   createMemPrompt db      "Enter the user id desired: $"
   memExistsMsg    db      "Sorry, this ID already exists, please select a new one$"
   memFileDivider  db      "|", 40 dup("-"), "|", 13
+
+  ; --------------- WRITEMEMID VARS -------------------------------
+  memIDLabel      db      "| "
+  memIDPadding    db      33 dup(" "), "|", 13
   
   ; --------------- GETFULLNAME VARS -------------------------------
   fullNamePrompt  db      "Enter the name desired: $"
@@ -44,7 +51,11 @@
   fullNameInput   db      30 dup(" "), "|",  13    ; auto padded weee, and the close the field
 
   ; --------------- GETGENDER VARS ---------------------------------
-  genderPrompt    db      "Enter your gender (F/M/U): $"
+  genderPrompt    db      "Enter your gender: $"
+  genderPromptOps db      "Gender Options$"
+  genderPromptOp1 db      "[F]emale$"
+  genderPromptOp2 db      "[M]ale$"
+  genderPromptOp3 db      "[U]ndefined$"
   invalidGender   db      "Invalid gender! Only UPPERCASE (F/M/U) accepted!$"
   genderLabel     db      "|Gender   |"
   genderInput     db      ?, 29 dup(" "), "|", 13  ; first is gender char (F/M), then the padding, then newline
@@ -355,12 +366,53 @@ closeFile proc
     ret
 closeFile endp
 
+createFileFail proc
+
+  printStr   crtFileErrMsg
+  ret 
+
+createFileFail endp
+
+; general place to handle writing file failed
+writeFileFail proc
+
+  printStr    writeFileErrMsg
+  ret
+
+writeFileFail endp
+
 writeMemFileDiv proc
 
   writeFile  fileHandle, 43, memFileDivider
-  ret
+  ; carry flag not on, write successfully
+  jnc        END_WRITE_MEM_FILE_DIV
+  ; carry flag on, write to file failed, but do ntg
+  call       writeFileFail
+
+  END_WRITE_MEM_FILE_DIV:
+    ret
 
 writeMemFileDiv endp
+
+; will be used to write the member ID of the user into the file
+writeMemId proc
+
+  writeFile  fileHandle, 2, memIDLabel
+  jc         WRITE_MEM_ID_FAIL
+  writeFile  fileHandle, 6, memFileName    ; take 6 bytes from memFileName (6 char of member id)
+  jc         WRITE_MEM_ID_FAIL
+  writeFile  fileHandle, 35, memIDPadding
+  jc         WRITE_MEM_ID_FAIL
+  jmp        END_WRITE_MEM_ID
+
+  ; write to file failed, but i can do ntg :")
+  WRITE_MEM_ID_FAIL:
+    call     writeFileFail
+
+  END_WRITE_MEM_ID:
+    ret
+
+writeMemId endp
 
 ; will be used by createMem to separate logic out
 ; gets the full name of a member and writes to the file
@@ -378,9 +430,16 @@ getFullName proc
   call    newline
   ;------ Format file and write to file section for name ------
   writeFile  fileHandle, 11, fullNameLabel
+  ; well, fail le we can do ntg, so just tell write failed and do ntg ba /shrug
+  jc      WRITE_FULL_NAME_FAIL
   writeFile  fileHandle, 32, fullNameInput
+  ; if no fail directly jump to end, fail le will still call the function
+  jnc     GET_FULL_NAME_END
 
-  ret
+  WRITE_FULL_NAME_FAIL:
+    call  writeFileFail
+  GET_FULL_NAME_END:
+    ret
 
 getFullName endp
 
@@ -388,30 +447,45 @@ getFullName endp
 getGender proc
 
   START_GENDER_PROMPT:
+    printStr    genderPromptOps
+    call        newline
+    printStr    genderPromptOp1
+    call        newline
+    printStr    genderPromptOp2
+    call        newline
+    printStr    genderPromptOp3
+    call        newline 
     printStr    genderPrompt
     ; input char for gender
     mov     ah, 01h
     int     21h
 
     ; check for gender
-    cmp     al, "F"
+    cmp    al, "F"
     je     VALID_GENDER
-    cmp     al, "M"
+    cmp    al, "M"
     je     VALID_GENDER
-    cmp     al, "U"
+    cmp    al, "U"
     je     VALID_GENDER
 
     ; if all the compares up thr did not jump to VALID_GENDER, then it's invalid
+    call   newline
     printStr    invalidGender
-    jmp     START_GENDER_PROMPT
+    call   newline
+    jmp    START_GENDER_PROMPT
   
   VALID_GENDER:
     mov     genderInput, al
     ; ------ format and write to gender section -------
     writeFile  fileHandle, 11, genderLabel
+    jc      WRITE_GENDER_FAIL
     writeFile  fileHandle, 32, genderInput
+    jnc     GET_GENDER_END
 
-  END_GENDER_PROMPT:
+  WRITE_GENDER_FAIL:
+    call    writeFileFail
+
+  GET_GENDER_END:
     ret
 
 getGender endp
@@ -450,15 +524,26 @@ createMem proc
     jnc        CREATE_MEM_EXISTS
     ; TODO: check if createFile failed
     createFile memFileName, 0, fileHandle
+    jc         CREATE_MEM_FAIL
     ; TODO: input ic (validate included), input tel no., input bday, input gender (F/M), input royalty member (Y/N)
     ; format the table by printing dividers in between
+    call       writeMemFileDiv
+    ; user id field (table heading)
+    call       writeMemId
     call       writeMemFileDiv
     ; name field
     call       getFullname
     call       getGender
+
+    call       writeMemFileDiv
     
     jmp        CREATE_MEM_END
   
+  ; create file failed, but we can do ntg as of now, maybe just say create file failed and rerun this function
+  CREATE_MEM_FAIL:
+    call      createFileFail
+    jmp       CREATE_MEM_START
+
   CREATE_MEM_END:
     ret
 
