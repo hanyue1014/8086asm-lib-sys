@@ -668,6 +668,13 @@ memLoanBook proc
   ; where XXXXXX is member ID, 20 dup('y') is book name
   ; open loanBookFileN in write mode, set handle to loanBookFileH
   openFile  loanBookFileN, 1, loanBookFileH
+  
+  ; TODO: Confirm use system date bttr or call user input bttr
+  ; get system date CX = year (1980-2099). DH = month. DL = day
+  mov     ah, 2ah
+  int     21h
+
+  ; convert day to ascii
 
   ; rmb to close file ;))
   mov     bx, loanBookFileH
