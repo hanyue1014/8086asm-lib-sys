@@ -32,6 +32,7 @@
   readFileErrMsg  db      "Read file failed, please try again$"
   writeFileErrMsg db      "Write to file failed, ignoring$"
   closeFileErrMsg db      "Close file failed, ignoring$"
+  mvFilePosFail   db      "Seek file position failed, ignoring$"
 
   ; --------------- CREATEMEMBER VARS ------------------------------
   createMemPrompt db      "Enter the member id desired: $"
@@ -75,6 +76,14 @@
 
   ; --------------- MEMBER MENU VARS --------------------------------
   memMenuOpIn     db      ?
+  invalidMemOp    db      "Invalid option!$"
+  memberOpRestart db      "Do you want to continue serving this member (Y/N)?$"
+
+  ; --------------- LOAN AND RETURN BOOK FILE HANDLING VARS ---------
+  ; file handle for loan book
+  loanBookFileH   dw      ?
+  ; file name (will be used by both loan and return book)
+  loanBookFileN   db      "lnList.txt", 0
 
 ;-------------- END of data segment
 
@@ -318,21 +327,45 @@ login proc
   ret
 login endp
 
-; TODO: See if this function is rlly needed, if no, remove
-; this function assumes the handler for the file is stored in the fileHandle global variable
+; this function assumes the handler for the file is stored in bx
 ; moves the cursor of the file in fileHandler to the start of file (0, 0)
+; DOES NOT RETAIN REGISTER VALUES
 moveFileCursSt proc
+  mov     ah, 42h         ; move file cursor
+  mov     al, 0           ; to calculate offset from beginning of file
+  mov     cx, 0           ; offset from al
+  mov     dx, 0           ; least significant offset (CX:DX) (row:col)
+  int     21h             
+  jc      ERR_MV_FILE_CURS_ST
+  jmp     END_MV_FILE_CURS_ST
 
+  ERR_MV_FILE_CURS_ST:
+    printStr  mvFilePosFail
+    call      newline
   
-  ret
+  END_MV_FILE_CURS_ST:
+    ret
+
 moveFileCursSt endp
 
-; this function assumes the handler for the file is stored in the fileHandle global variable
+; this function assumes the handler for the file is stored in the bx register
 ; moves the cursor of the file in fileHandle to the EndOfFile
 moveFileCursEnd proc
+  mov     ah,42h       ; move file cursor
+  mov     al, 2        ; to calculate offset from end of file
+  mov     cx, 0        ; offset from al
+  mov     dx, 0        ; least significant offset (CX:DX) (row:col), 0:0 as we want to write to EOF
+  int     21h             
+  jc      ERR_MV_FILE_CURS_END
+  jmp     END_MV_FILE_CURS_END
 
+  ERR_MV_FILE_CURS_END:
+    printStr  mvFilePosFail
+    call      newline
   
-  ret
+  END_MV_FILE_CURS_END:
+    ret
+
 moveFileCursEnd endp
 
 ; THIS FUNCTION DOES NOT RETAIN REGISTER VALUES, REGISTER WILL BE OVERWRITTEN UPON USING THIS
@@ -351,7 +384,16 @@ printFileC proc
     ; compare if at EOF, if no, print the character read and loop again
     cmp   ax, 0
     je    PRINT_FILE_END
+    cmp   fileMsg, 10    ; apparently line feed will also be written to the file EVEN I DID NOT SPECIFIED IT, so gonna ignore it
+    je    READ_FILE_CHAR
+    ; compare if is newline char, will call our own newline proc when meet newline char
+    cmp   fileMsg, 13
+    je    READ_FILE_NEWLINE
     printChar fileMsg
+    jmp   READ_FILE_CHAR
+
+  READ_FILE_NEWLINE:
+    call  newline
     jmp   READ_FILE_CHAR
   
   READ_FILE_FAIL:
@@ -618,22 +660,18 @@ printMemDetails proc
 
 printMemDetails endp
 
-;------- main function ------------------------------------
-main proc far
+memLoanBook proc
 
-  ; initialize data segment
-  mov     ax, @data
-  mov     ds, ax
-  
-  ; the real program is actually here
-  
-  ; openFile testFile, 2, fileHandle
-  ; createFile testCreate, 0, fileHandle
-  ; call    createMem
+
+
+memLoanBook endp
+
+memberOptions proc
+
   call    getMember
   MEMBER_OPTIONS:
     cmp     hasMember, 0
-    je      EXIT
+    je      MEMBER_OPTIONS_END
     call    printMemberOptions
     ; input for option
     mov     ah, 01h
@@ -649,18 +687,58 @@ main proc far
     je      MEMBER_DETAILS_OPTION
     cmp     memMenuOpIn, "b"
     je      EXIT
-    jmp     MEMBER_OPTIONS
+    jmp     INVALID_MEMBER_OPTION
 
   LOAN_BOOK_OPTION:
+    call    memLoanBook
+    jmp     CONTINUE_CONFIRMATION_MEM_OP
 
   RETURN_BOOK_OPTION:
 
   MEMBER_DETAILS_OPTION:
     call    printMemDetails
+    ; after reading, reset the position to beginning of file
+    mov     bx, fileHandle
+    ; this function assumes the file handle of the file tht needs position moving is in bx
+    call    moveFileCursSt
+    jmp     CONTINUE_CONFIRMATION_MEM_OP
+  
+  INVALID_MEMBER_OPTION:
+    printStr  invalidMemOp
+    call  newline
+    jmp   CONTINUE_CONFIRMATION_MEM_OP
+  
+  CONTINUE_CONFIRMATION_MEM_OP:
+    printStr  memberOpRestart
+    call  newline
+    mov   ah, 01h
+    int   21h
+    ; shud reloop upon Y or y
+    cmp   al, "Y"
+    je    MEMBER_OPTIONS
+    cmp   al, "y"
+    je    MEMBER_OPTIONS
+    jmp   MEMBER_OPTIONS_END
+  
+  MEMBER_OPTIONS_END:
+    ; close the member file upon quit
+    mov   bx, fileHandle
+    call  closeFile
+    mov   hasMember, 0    ; finished serving a member
+    ret
 
-  ; printFile assumes the file handle for the file to be printed is already in bx when called
-  ; mov      bx, fileHandle
-  ; call     printFileC
+memberOptions endp
+
+;------- main function ------------------------------------
+main proc far
+
+  ; initialize data segment
+  mov     ax, @data
+  mov     ds, ax
+  
+  ; the real program is actually here
+  
+  call    memberOptions
     
   ; end of real program
   
