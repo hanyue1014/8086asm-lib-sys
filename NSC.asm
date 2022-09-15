@@ -124,6 +124,7 @@ main proc far
   mov     ds, ax
   
   ; the real program is actually here
+returnCal proc far
 START_CAL_LOAN:
   printStr loanDateMsg
 
@@ -484,7 +485,7 @@ START_CAL_LOAN:
           add remain, 30H         ;ready to print the second digit
           printChar quotient
           printChar remain
-          jmp EXIT
+          ret
         
         OVER_SUBTRACT:
           mov ah, 0               ;clear ax
@@ -528,9 +529,12 @@ START_CAL_LOAN:
           add remain, 30H         ;ready to print the second digit
           printChar quotient
           printChar remain
-          jmp EXIT
-
+          ret
+returnCal endp    
   ; end of real program
+  
+  call returnCal
+  jmp EXIT
   
   ; tell os to end program
   EXIT:
