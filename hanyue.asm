@@ -94,14 +94,14 @@
   bookInp         label   byte
   bookMaxLen      db      21
   bookActLen      db      ?
-  bookInpBuf      db      21 dup(" ")
+  bookInpBuf      db      21 dup(" "), 13
 
   ; --------------- WRITESYSDATE VARS -------------------------------
   ; DD to be replaced by date, MM to be replaced by month, YYYY to be replaced by year
   dateLabel       db      "[DD/MM/YYYY] "
   
   ; --------------- LOAN BOOK VARS ----------------------------------
-  loanLabelTxt    db      " loans "
+  loanLabelTxt    db      " loans <"
 
 ;-------------- END of data segment
 
@@ -402,10 +402,10 @@ printFileC proc
     ; compare if at EOF, if no, print the character read and loop again
     cmp   ax, 0
     je    PRINT_FILE_END
-    cmp   fileMsg, 10    ; apparently line feed will also be written to the file EVEN I DID NOT SPECIFIED IT, so gonna ignore it
+    cmp   fileMsg, 13    ; apparently carriage return will also be written to the file EVEN I DID NOT SPECIFIED IT, so gonna ignore it
     je    READ_FILE_CHAR
-    ; compare if is newline char, will call our own newline proc when meet newline char
-    cmp   fileMsg, 13
+    ; compare if is newline char (line feed), will call our own newline proc when meet newline char
+    cmp   fileMsg, 10
     je    READ_FILE_NEWLINE
     printChar fileMsg
     jmp   READ_FILE_CHAR
@@ -767,8 +767,11 @@ getBook proc
   mov     ah, 0ah
   lea     dx, bookInp
   int     21h
-  ; TODO: remove enter from user input, replace 21th character become enter
-  writeFile     loanBookFileH, 21, bookInpBuf
+  ; remove enter from user input, replace with > to close the book name
+  mov     bh, 00h
+  mov     bl, bookActLen
+  mov     bookInpBuf[bx], ">"
+  writeFile     loanBookFileH, 22, bookInpBuf
   jnc     GET_BOOK_END
   call    writeFileFail
 
@@ -781,15 +784,17 @@ getBook endp
 ; assumes lnList.txt already exists on the machine
 memLoanBook proc
 
-  ; read system date (maybe?), example msg will be [DD/MM/YYYY] XXXXXX loan 20 dup('y')
+  ; read system date (maybe?), example msg will be [DD/MM/YYYY] XXXXXX loan <20 dup('y')>
   ; where XXXXXX is member ID, 20 dup('y') is book name
   ; open loanBookFileN in write mode, set handle to loanBookFileH
   openFile  loanBookFileN, 1, loanBookFileH
+  mov     bx, loanBookFileH
+  call    moveFileCursEnd
   
   call    writeSysDate
   mov     bx, loanBookFileH
   call    writeMemId
-  writeFile   loanBookFileH, 7, loanLabelTxt
+  writeFile   loanBookFileH, 8, loanLabelTxt
   call    getBook
 
   ; rmb to close file ;))
