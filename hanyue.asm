@@ -88,11 +88,20 @@
   loanBookFileH   dw      ?
   ; file name (will be used by both loan and return book)
   loanBookFileN   db      "lnList.txt", 0
+  ; ----------------- GETBOOK VARS ----------------------------------
+  ; the book that will undergo loan or return
+  bookInpPrompt   db      "Please input the book: $"
+  bookInp         label   byte
+  bookMaxLen      db      21
+  bookActLen      db      ?
+  bookInpBuf      db      21 dup(" ")
 
   ; --------------- WRITESYSDATE VARS -------------------------------
   ; DD to be replaced by date, MM to be replaced by month, YYYY to be replaced by year
-  dateLabel       db      "[DD/MM/YYYY]"
-  loanDateRemain  dw      ?     ; could be > 255 as year divide
+  dateLabel       db      "[DD/MM/YYYY] "
+  
+  ; --------------- LOAN BOOK VARS ----------------------------------
+  loanLabelTxt    db      " loans "
 
 ;-------------- END of data segment
 
@@ -441,6 +450,7 @@ createFileFail endp
 writeFileFail proc
 
   printStr    writeFileErrMsg
+  call        newline
   ret
 
 writeFileFail endp
@@ -459,13 +469,10 @@ writeMemFileDiv proc
 writeMemFileDiv endp
 
 ; will be used to write the member ID of the user into the file
+; assumes fileHandle is placed in bx
 writeMemId proc
 
-  writeFile  fileHandle, 2, memIDLabel
-  jc         WRITE_MEM_ID_FAIL
-  writeFile  fileHandle, 6, memFileName    ; take 6 bytes from memFileName (6 char of member id)
-  jc         WRITE_MEM_ID_FAIL
-  writeFile  fileHandle, 36, memIDPadding
+  writeFile  bx, 6, memFileName    ; take 6 bytes from memFileName (6 char of member id)
   jc         WRITE_MEM_ID_FAIL
   jmp        END_WRITE_MEM_ID
 
@@ -477,6 +484,26 @@ writeMemId proc
     ret
 
 writeMemId endp
+
+; extends writeMemId, used specifically in createMem for all the formatting stuffs
+writeMemIdC proc
+
+  writeFile  fileHandle, 2, memIDLabel
+  jc         WRITE_MEM_ID_C_FAIL
+  mov        bx, fileHandle
+  call       writeMemId
+  writeFile  fileHandle, 36, memIDPadding
+  jc         WRITE_MEM_ID_C_FAIL
+  jmp        END_WRITE_MEM_ID
+
+  ; write to file failed, but i can do ntg :")
+  WRITE_MEM_ID_C_FAIL:
+    call     writeFileFail
+
+  END_WRITE_MEM_ID_C:
+    ret
+
+writeMemIdC endp
 
 ; will be used by createMem to separate logic out
 ; gets the full name of a member and writes to the file
@@ -722,11 +749,33 @@ writeSysDate proc
   add     ah, 30h
   mov     dateLabel[10], ah
 
-  writeFile   loanBookFileH, 12, dateLabel
+  writeFile   loanBookFileH, 13, dateLabel
+  jnc     WRITE_SYS_DATE_END
+  call    writeFileFail
 
-  ret
+  WRITE_SYS_DATE_END:
+    ret
 
 writeSysDate endp
+
+; gets a book (inputted by user), writes into loanBookFileH
+getBook proc
+
+  printStr      bookInpPrompt
+
+  ; input for book name to be loaned
+  mov     ah, 0ah
+  lea     dx, bookInp
+  int     21h
+  ; TODO: remove enter from user input, replace 21th character become enter
+  writeFile     loanBookFileH, 21, bookInpBuf
+  jnc     GET_BOOK_END
+  call    writeFileFail
+
+  GET_BOOK_END:
+    ret
+
+getBook endp
 
 ; writes to lnList.txt
 ; assumes lnList.txt already exists on the machine
@@ -738,10 +787,16 @@ memLoanBook proc
   openFile  loanBookFileN, 1, loanBookFileH
   
   call    writeSysDate
+  mov     bx, loanBookFileH
+  call    writeMemId
+  writeFile   loanBookFileH, 7, loanLabelTxt
+  call    getBook
 
   ; rmb to close file ;))
   mov     bx, loanBookFileH
   call    closeFile
+
+  ret
 
 memLoanBook endp
 
