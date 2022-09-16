@@ -82,7 +82,16 @@
   genderPromptOp3 db      "[U]ndefined$"
   invalidGender   db      "Invalid gender! Only UPPERCASE (F/M/U) accepted!$"
   genderLabel     db      "| Gender    | "
-  genderInput     db      ?, 29 dup(" "), "|", 10  ; first is gender char (F/M), then the padding, then newline  
+  genderInput     db      ?, 29 dup(" "), "|", 10  ; first is gender char (F/M/U), then the padding, then newline  
+  
+  ; --------------- GETROYALMEMBER VARS ---------------------------------
+  rmPrompt        db      "Do you want to become a Royal Member: $"
+  rmPromptOps     db      "Options$"
+  rmPromptOp1     db      "[Y]es$"
+  rmPromptOp2     db      "[N]o$"
+  invalidRMOp     db      "Invalid Option! Only UPPERCASE (Y/N) accepted!$"
+  rmLabel         db      "| R. Member | "
+  rmInput         db      ?, 29 dup(" "), "|", 10  ; first is RM char (Y/N), then the padding, then newline
 
   ; ---------------- VARS FOR MEMBER OPTIONS -----------------------
   memberIDPrompt  db      "Enter the member's ID: $"
@@ -602,6 +611,7 @@ getFullName proc
 
 getFullName endp
 
+; gets and validates phone number, writes into the member file
 getHpNo proc
 
   START_INPUT_HP_NO:
@@ -692,6 +702,7 @@ getGender proc
     jmp    START_GENDER_PROMPT
   
   VALID_GENDER:
+    call    newline
     mov     genderInput, al
     ; ------ format and write to gender section -------
     writeFile  fileHandle, 14, genderLabel
@@ -706,6 +717,50 @@ getGender proc
     ret
 
 getGender endp
+
+; gets and validates royalty member (only uppercase Y or N is accepted)
+getRoyaltyMember proc
+
+  START_RM_PROMPT:
+    printStr    rmPromptOps
+    call        newline
+    printStr    rmPromptOp1
+    call        newline
+    printStr    rmPromptOp2
+    call        newline 
+    printStr    rmPrompt
+    ; input char for gender
+    mov     ah, 01h
+    int     21h
+
+    ; check for gender
+    cmp    al, "Y"
+    je     VALID_RM_OP
+    cmp    al, "N"
+    je     VALID_RM_OP
+
+    ; if all the compares up thr did not jump to VALID_GENDER, then it's invalid
+    call   newline
+    printStr    invalidRMOp
+    call   newline
+    jmp    START_RM_PROMPT
+  
+  VALID_RM_OP:
+    call    newline
+    mov     rmInput, al
+    ; ------ format and write to gender section -------
+    writeFile  fileHandle, 14, rmLabel
+    jc      WRITE_RM_OP_FAIL
+    writeFile  fileHandle, 32, rmInput
+    jnc     GET_RM_END
+
+  WRITE_RM_OP_FAIL:
+    call    writeFileFail
+
+  GET_RM_END:
+    ret
+
+getRoyaltyMember endp
 
 ; this function handles the input of member ID (placed in the MEM_FILE label), and the validation
 ; rmb check carry flag, carry flag will be turned on if this function fails
@@ -769,9 +824,12 @@ createMem proc
     call       getHpNo
     ; gender field
     call       getGender
+    ; royalty member field
+    call       getRoyaltyMember
     ; close the table
     call       writeMemFileDiv
-    
+    ; create success
+    printStr   createMemSucc
     jmp        CREATE_MEM_END
   
   ; create file failed, but we can do ntg as of now, maybe just say create file failed and rerun this function
