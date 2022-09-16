@@ -41,19 +41,38 @@
   ; --------------- CREATEMEMBER VARS ------------------------------
   createMemPrompt db      "Enter the member id desired: $"
   memExistsMsg    db      "Sorry, this ID already exists, please select a new one$"
-  memFileDivider  db      "|", 41 dup("-"), "|", 13
+  createMemSucc   db      "Successfully created member!"
+  memFileDivider  db      "|", 43 dup("-"), "|", 10
+
+  ;=================IC input ===============
+  msgIcInput      db      "Please enter your Ic number: $"
+  ICInvalid       db      "Invalid IC: IC should be 12 DIGITS[0-9]$"
+  ICLabel        db      "| IC. No.   | "
+  Input_label_IC  label   Byte
+  Icmaxlen        db      13
+  Icactlen        db      ?
+  inputBuffer_IC  db      30 dup(" "), "|", 10   ; auto pad IC
 
   ; --------------- WRITEMEMID VARS -------------------------------
   memIDLabel      db      "| "
-  memIDPadding    db      34 dup(" "), "|", 13
+  memIDPadding    db      36 dup(" "), "|", 10
   
   ; --------------- GETFULLNAME VARS -------------------------------
-  fullNamePrompt  db      "Enter the name desired: $"
-  fullNameLabel   db      "|Name      |"
+  fullNamePrompt  db      "Enter your name: $"
+  fullNameLabel   db      "| Name      | "
   fullNameField   label   byte
   fullNameMaxLen  db      30
   fullNameActLen  db      ?
-  fullNameInput   db      30 dup(" "), "|",  13    ; auto padded weee, and the close the field
+  fullNameInput   db      30 dup(" "), "|",  10    ; auto padded weee, and the close the field
+
+  ; --------------- GETHPNO VARS -----------------------------------
+  hpNoPrompt      db      "Enter your phone number: $"
+  hpNoInvalidMsg  db      "Invalid Phone Number: Phone number should be 10-11 DIGITS[0-9]$"
+  hpNoLabel       db      "| HP. No.   | "
+  hpNoField       label   byte
+  hpNoMaxLen      db      12                       ; hp no can be 10 or 11 chars
+  hpNoActLen      db      ?
+  hpNoInput       db      30 dup(" "), "|",  10    ; auto pad
 
   ; --------------- GETGENDER VARS ---------------------------------
   genderPrompt    db      "Enter your gender: $"
@@ -62,8 +81,8 @@
   genderPromptOp2 db      "[M]ale$"
   genderPromptOp3 db      "[U]ndefined$"
   invalidGender   db      "Invalid gender! Only UPPERCASE (F/M/U) accepted!$"
-  genderLabel     db      "|Gender    |"
-  genderInput     db      ?, 29 dup(" "), "|", 13  ; first is gender char (F/M), then the padding, then newline  
+  genderLabel     db      "| Gender    | "
+  genderInput     db      ?, 29 dup(" "), "|", 10  ; first is gender char (F/M), then the padding, then newline  
 
   ; ---------------- VARS FOR MEMBER OPTIONS -----------------------
   memberIDPrompt  db      "Enter the member's ID: $"
@@ -94,7 +113,7 @@
   bookInp         label   byte
   bookMaxLen      db      21
   bookActLen      db      ?
-  bookInpBuf      db      21 dup(" "), 13
+  bookInpBuf      db      21 dup(" "), 10
 
   ; --------------- WRITESYSDATE VARS -------------------------------
   ; DD to be replaced by date, MM to be replaced by month, YYYY to be replaced by year
@@ -292,7 +311,7 @@ login proc
     INPUT_PASS:
       mov     ah, 07h
       int     21h
-      cmp     al, 0dh              ; check if user input is new line
+      cmp     al, 0dh              ; check if user input is carriage return
       je      INPUT_FINISH
       printChar   "*"              ; at least user know they typed a char
       mov     passBuf[bx], al      ; put the inputted character into passBuf
@@ -402,7 +421,7 @@ printFileC proc
     ; compare if at EOF, if no, print the character read and loop again
     cmp   ax, 0
     je    PRINT_FILE_END
-    cmp   fileMsg, 13    ; apparently carriage return will also be written to the file EVEN I DID NOT SPECIFIED IT, so gonna ignore it
+    cmp   fileMsg, 13    ; gonna ignore CR as if creating file on dos, EOL is 0d0a, this allows support both linux and dos txt files as linux EOL is only 0a but dos is 0d0a
     je    READ_FILE_CHAR
     ; compare if is newline char (line feed), will call our own newline proc when meet newline char
     cmp   fileMsg, 10
@@ -457,7 +476,7 @@ writeFileFail endp
 
 writeMemFileDiv proc
 
-  writeFile  fileHandle, 44, memFileDivider
+  writeFile  fileHandle, 46, memFileDivider
   ; carry flag not on, write successfully
   jnc        END_WRITE_MEM_FILE_DIV
   ; carry flag on, write to file failed, but do ntg
@@ -492,9 +511,9 @@ writeMemIdC proc
   jc         WRITE_MEM_ID_C_FAIL
   mov        bx, fileHandle
   call       writeMemId
-  writeFile  fileHandle, 36, memIDPadding
+  writeFile  fileHandle, 38, memIDPadding
   jc         WRITE_MEM_ID_C_FAIL
-  jmp        END_WRITE_MEM_ID
+  jmp        END_WRITE_MEM_ID_C
 
   ; write to file failed, but i can do ntg :")
   WRITE_MEM_ID_C_FAIL:
@@ -504,6 +523,55 @@ writeMemIdC proc
     ret
 
 writeMemIdC endp
+
+;==============Input Ic =====================================
+
+inputIc proc
+
+START_INPUT_IC:
+  printStr    msgIcInput
+  mov ah,0ah
+  lea dx,Input_label_IC
+  int 21h
+  call newline
+  mov si,0
+here_IC:
+  ; check if si is 12 (0 - 11), 12 means end
+  cmp si, 12
+  je  valid_ic
+  mov al,inputBuffer_IC[si]
+
+  cmp al,"0"
+  jb invalid_ic
+  cmp al,"9"
+  ja invalid_ic
+  jmp increment_ic
+
+increment_ic:
+  inc si
+  jmp here_IC
+
+invalid_ic:
+    printStr ICInvalid
+    jmp START_INPUT_IC
+    
+valid_ic:
+  ; clean ic field (remove enter)
+  mov     inputBuffer_IC[si], " "
+  ;------ Format file and write to file section for name ------
+  writeFile  fileHandle, 14, ICLabel
+  ; well, fail le we can do ntg, so just tell write failed and do ntg ba /shrug
+  jc      WRITE_IC_FAIL
+  writeFile  fileHandle, 32, inputBuffer_IC
+  ; if no fail directly jump to end, fail le will still call the function
+  jnc     quit_Inp_IC
+
+  WRITE_IC_FAIL:
+    call  writeFileFail
+
+quit_Inp_IC:  
+  ret
+inputIc endp
 
 ; will be used by createMem to separate logic out
 ; gets the full name of a member and writes to the file
@@ -520,7 +588,7 @@ getFullName proc
   mov     fullNameInput[bx], " "
   call    newline
   ;------ Format file and write to file section for name ------
-  writeFile  fileHandle, 12, fullNameLabel
+  writeFile  fileHandle, 14, fullNameLabel
   ; well, fail le we can do ntg, so just tell write failed and do ntg ba /shrug
   jc      WRITE_FULL_NAME_FAIL
   writeFile  fileHandle, 32, fullNameInput
@@ -533,6 +601,64 @@ getFullName proc
     ret
 
 getFullName endp
+
+getHpNo proc
+
+  START_INPUT_HP_NO:
+    printStr    hpNoPrompt
+    ; input phone number
+    mov     ah, 0ah
+    lea     dx, hpNoField
+    int     21h
+    call    newline
+
+    ; set si to 0 to be ready for char by char validation
+    mov     si,0
+  START_HP_NO_CHECK:
+    ; check if the character is CR (the enter key pressed by user)
+    mov     al, hpNoInput[si]
+    cmp     al, 0dh
+    je      IN_HP_NO_ENTER     ; enter reached in inputHpNo (very sensible naming, ikr)
+
+    cmp     al,"0"
+    jb      INVALID_HP_NO
+    cmp     al,"9"
+    ja      INVALID_HP_NO
+    jmp     INC_HP_NO_SI
+
+  IN_HP_NO_ENTER:
+    cmp     si, 10            ; 11th char is CR, no prob (0-9) 10 chars is digit
+    je      VALID_HP_NO
+    cmp     si, 11            ; 12th char is CR, no prob (0-9) 11 chars is digit
+    je      VALID_HP_NO
+    jmp     INVALID_HP_NO     ; none of it passed, invalid lo /shrug
+
+  INC_HP_NO_SI:
+    inc     si
+    jmp     START_HP_NO_CHECK
+
+  INVALID_HP_NO:
+    printStr hpNoInvalidMsg
+    jmp     START_INPUT_HP_NO
+      
+  VALID_HP_NO:
+    ; clean phone number field (remove enter)
+    mov     hpNoInput[si], " "
+    ;------ Format file and write to file section for name ------
+    writeFile  fileHandle, 14, hpNoLabel
+    ; well, fail le we can do ntg, so just tell write failed and do ntg ba /shrug
+    jc      WRITE_HP_NO_FAIL
+    writeFile  fileHandle, 32, hpNoInput
+    ; if no fail directly jump to end, fail le will still call the function
+    jnc     END_GET_HP_NO
+
+    WRITE_HP_NO_FAIL:
+      call  writeFileFail
+
+  END_GET_HP_NO:  
+    ret
+
+getHpNo endp
 
 ; gets and validates gender, can be F - female, M - male, U - undefined (only uppercase)
 getGender proc
@@ -568,7 +694,7 @@ getGender proc
   VALID_GENDER:
     mov     genderInput, al
     ; ------ format and write to gender section -------
-    writeFile  fileHandle, 12, genderLabel
+    writeFile  fileHandle, 14, genderLabel
     jc      WRITE_GENDER_FAIL
     writeFile  fileHandle, 32, genderInput
     jnc     GET_GENDER_END
@@ -597,6 +723,7 @@ inputMemId proc
     printStr memNotEnfChar
     call     newline
     stc               ; set carry flag
+    ret
 
   INPUT_MEM_ID_END:
     ; set the . back (previously replaced by enter key)
@@ -613,6 +740,7 @@ createMem proc
     call    inputMemId
     ; if carry flag on means inputMemId has error
     jc      CREATE_MEM_START
+    jmp     USER_ID_ENF_CH
   
   ; this label actually belongs to USER_ID)ENF_CH, scared long jump needed, so put up here
   CREATE_MEM_EXISTS:
@@ -631,12 +759,17 @@ createMem proc
     ; format the table by printing dividers in between
     call       writeMemFileDiv
     ; user id field (table heading)
-    call       writeMemId
+    call       writeMemIdC
     call       writeMemFileDiv
     ; name field
     call       getFullname
+    ; IC field 
+    call       inputIc
+    ; phone number field
+    call       getHpNo
+    ; gender field
     call       getGender
-
+    ; close the table
     call       writeMemFileDiv
     
     jmp        CREATE_MEM_END
@@ -876,7 +1009,8 @@ main proc far
   mov     ds, ax
   
   ; the real program is actually here
-  
+  call    login
+  call    createMem
   call    memberOptions
     
   ; end of real program
