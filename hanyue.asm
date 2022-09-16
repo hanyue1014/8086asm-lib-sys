@@ -41,7 +41,7 @@
   ; --------------- CREATEMEMBER VARS ------------------------------
   createMemPrompt db      "Enter the member id desired: $"
   memExistsMsg    db      "Sorry, this ID already exists, please select a new one$"
-  createMemSucc   db      "Successfully created member!"
+  createMemSucc   db      "Successfully created member!$"
   memFileDivider  db      "|", 43 dup("-"), "|", 10
 
   ;=================IC input ===============
@@ -86,7 +86,7 @@
   
   ; --------------- GETROYALMEMBER VARS ---------------------------------
   rmPrompt        db      "Do you want to become a Royal Member: $"
-  rmPromptOps     db      "Options$"
+  rmPromptOps     db      "Royalty Member Options$"
   rmPromptOp1     db      "[Y]es$"
   rmPromptOp2     db      "[N]o$"
   invalidRMOp     db      "Invalid Option! Only UPPERCASE (Y/N) accepted!$"
