@@ -3,6 +3,10 @@
 
 ;-------------- VARIABLE DECLARATIONS ---------------------
 .data
+  ; common vars for formatting
+  ; row and column of where the cursor at on screen, defaults to 0
+  currRow         db      0
+  currCol         db      0
   ; ---------------------- LOGIN VARS ------------------------------
   greetLoginMsg   db      "Welcome, Admin, please enter password: $"
   loginSuccMsg    db      "Login Success!!!$"
@@ -164,7 +168,10 @@
   dateLabel       db      "[DD/MM/YYYY] "
   
   ; --------------- LOAN BOOK VARS ----------------------------------
-  loanLabelTxt    db      " loans <"
+  loanLabelTxt    db      " loans   <"
+
+  ; --------------- return book vars --------------------------------
+  retLabelTxt     db      " returns <"
 
   ; ---- soon chee's vars (can u label it which function they belong to in the future) ----
   hundred         db 100
@@ -337,41 +344,59 @@ endm writeFile
 ;------ END MACRO DECLARATIONS ----------------------------
 
 ;------ FUNCTION DECLARATIONS -----------------------------
-; when used, prints a new line (carriage return and line feed to screen)
+; TODO: when used, increments currRow and sets cursor position to the incremented currRow
+; if currRow >= 18h (max row of dosbox, screen will be scrolled)
 newline proc
 
-  ; store register data to stack so when end macro the register will have original value
+  
   push    ax
   push    dx
   
-  mov     ah, 02h
-  mov     dl, 0ah     ; carriage return
-  int     21h
-  
-  mov     dl, 0dh     ; line feed
-  int     21h     
+  ; original behavior (ditched becuz want formatting)
+  ; mov     ah, 02h
+  ; mov     dl, 0ah     ; carriage return
+  ; int     21h
+  ; mov     dl, 0dh     ; line feed
+  ; int     21h     
 
-  ; restore register original data
-  pop     dx
-  pop     ax
-  ret
+  ; increment currRow
+  START_NEW_LINE:
+  inc     currRow
+  cmp     currRow, 18h
+  jge     NEED_SCROLL_SCREEN
+
+  setCursP 00h, currRow, currCol
+  jmp     END_NEW_LINE
+
+  ; TODO: scroll screen up by 4, subtract 4 from currRow, jump back to increment currRow
+  NEED_SCROLL_SCREEN:
+
+
+  END_NEW_LINE:
+    
+    pop     dx
+    pop     ax
+    ret
 newline endp
 
 ; when used, scroll by one screen
 clear proc
 
+  ; store register data to stack so when end proc the register will have original value
   push    ax
   push    bx
   push    cx
   push    dx
   
-  ; screen clearing
-  mov     ax, 0600h
-  mov     bh, 0Fh
-  mov     cx, 0000h
-  mov     dx, 18ffh
-  int     10h
+  ; screen clearing with color
+  ; pls prepare ,i want to scroll screen up (06h),scroll entire page (00H)
+  mov ax, 0600h
+  mov bh, 00011110b
+  mov cx, 0000h
+  mov dx, 184fh
+  int 10h
 
+  ; restore register original data
   pop     dx
   pop     cx
   pop     bx
@@ -381,6 +406,10 @@ clear endp
 
 ; function for login
 login proc
+  call        clear
+  mov         currRow, 07h
+  mov         currCol, 0ah
+  setCursP    00h, currRow, currCol
   STARTLOGIN:
     mov         bx, 0
     printStr    greetLoginMsg
@@ -443,45 +472,26 @@ login endp
 
 printMenu proc
 
-
-  mov ax,0600h		;pls prepare ,i want to scroll screen up (06h),scroll entire page (00H)
-  mov bh,00011110b			;set bliking effect , bg-red,fg -yellow (1 100 1110)
-  mov cx,0000h		;window size starts from here 
-  mov dx,184fh		;windows size ends here
-      
-  int 10h			;carry out the operation
-
-
+  call clear
 	
-	;the following section show cursor position
-	mov ah,02h			;pls prepare i want to set cursor position
-	mov bh,00h			;set cursur in current video page
-	mov dh,05			;set cursor at row 12
-	mov dl,20		;set cursor at column 39
-	int 10h			;carry out operation
+	;the following section sets cursor position
+	mov currRow, 05			  ; set cursor at row 5 (dec)
+	mov currCol, 20		    ;set cursor at column 20 (dec)
+	setCursP 00h, currRow, currCol
 
-mov ax,0600h
-mov bh,11011110b
-mov ch,05
-mov cl,15           ;window size starts from here 
-mov dh,07
-mov dl,69	;windows size ends here
-int 10h	
+  ; cannot call clear as this special section colour
+  mov ax,0600h
+  mov bh,11011110b
+  mov ch,05
+  mov cl,15           ;window size starts from here 
+  mov dh,07
+  mov dl,69	;windows size ends here
+  int 10h	
 printStr        PrintHeader1
 call            newline
-mov ah,02h			;pls prepare i want to set cursor position
-mov bh,00h			;set cursur in current video page
-mov dh,06			;set cursor at row 12
-mov dl,20		;set cursor at column 39
-int 10h			;carry out operation
 
 printStr        PrintHeader2
 call            newline
-mov ah,02h			;pls prepare i want to set cursor position
-mov bh,00h			;set cursur in current video page
-mov dh,07		;set cursor at row 12
-mov dl,20		;set cursor at column 39
-int 10h			;carry out operation
 	
 printStr        PrintHeader3
 call            newline
@@ -497,41 +507,23 @@ mov cl,15           ;window size starts from here
 mov dh,18
 mov dl,69	;windows size ends here
 int 10h	
+
+mov currRow, 10
+setCursP 00h, currRow, currCol
 printStr        PrintMenu1
 call            newline
-mov ah,02h			;pls prepare i want to set cursor position
-mov bh,00h			;set cursur in current video page
-mov dh,11		;set cursor at row 12
-mov dl,20		;set cursor at column 39
-int 10h			;carry out operation
+
 printStr        PrintMenu2
 call            newline
-mov ah,02h			;pls prepare i want to set cursor position
-mov bh,00h			;set cursur in current video page
-mov dh,12		;set cursor at row 12
-mov dl,20		;set cursor at column 39
-int 10h			;carry out operation
+
 printStr        PrintMenu3
 call            newline
-mov ah,02h			;pls prepare i want to set cursor position
-mov bh,00h			;set cursur in current video page
-mov dh,13		;set cursor at row 12
-mov dl,20		;set cursor at column 39
-int 10h			;carry out operation
+
 printStr        PrintMenu4
 call            newline
-mov ah,02h			;pls prepare i want to set cursor position
-mov bh,00h			;set cursur in current video page
-mov dh,14		;set cursor at row 12
-mov dl,20		;set cursor at column 39
-int 10h			;carry out operation
+
 printStr        PrintMenu5
 call            newline
-mov ah,02h			;pls prepare i want to set cursor position
-mov bh,00h			;set cursur in current video page
-mov dh,16		;set cursor at row 12
-mov dl,20		;set cursor at column 39
-int 10h			;carry out operation
 
 ret
 
@@ -1252,7 +1244,7 @@ getBook endp
 ; assumes lnList.txt already exists on the machine
 memLoanBook proc
 
-  ; read system date (maybe?), example msg will be [DD/MM/YYYY] XXXXXX loan <20 dup('y')>
+  ; example msg will be [DD/MM/YYYY] XXXXXX loan <20 dup('y')>
   ; where XXXXXX is member ID, 20 dup('y') is book name
   ; open loanBookFileN in write mode, set handle to loanBookFileH
   openFile  loanBookFileN, 1, loanBookFileH
@@ -1262,7 +1254,7 @@ memLoanBook proc
   call    writeSysDate
   mov     bx, loanBookFileH
   call    writeMemId
-  writeFile   loanBookFileH, 8, loanLabelTxt
+  writeFile   loanBookFileH, 10, loanLabelTxt
   call    getBook
 
   ; rmb to close file ;))
@@ -1683,6 +1675,33 @@ START_CAL_LOAN:
         ret
 returnCal endp 
 
+; writes to lnList.txt
+; assumes lnList.txt already exists on the machine
+memRetBook proc
+  ; calculate the loan first
+  call    returnCal
+
+  ; [DD/MM/YYYY] XXXXXX returns <20 dup('y')>
+  ; where XXXXXX is member ID, 20 dup('y') is book name
+  ; open loanBookFileN in write mode, set handle to loanBookFileH
+  openFile  loanBookFileN, 1, loanBookFileH
+  mov     bx, loanBookFileH
+  call    moveFileCursEnd
+  
+  call    writeSysDate
+  mov     bx, loanBookFileH
+  call    writeMemId
+  writeFile   loanBookFileH, 10, retLabelTxt
+  call    getBook
+
+  ; rmb to close file ;))
+  mov     bx, loanBookFileH
+  call    closeFile
+
+  ret
+
+memRetBook endp
+
 memberOptions proc
 
   call    getMember
@@ -1711,6 +1730,8 @@ memberOptions proc
     jmp     CONTINUE_CONFIRMATION_MEM_OP
 
   RETURN_BOOK_OPTION:
+    call    memRetBook
+    jmp     CONTINUE_CONFIRMATION_MEM_OP
 
   MEMBER_DETAILS_OPTION:
     call    printMemDetails
@@ -1746,6 +1767,19 @@ memberOptions proc
 
 memberOptions endp
 
+bookLoanList proc
+
+  ; open lnList.txt in read mode
+  openFile  loanBookFileN, 0, loanBookFileH
+  mov     bx, loanBookFileH
+  call    printFileC
+  
+  mov     bx, loanBookFileH
+  call    closeFile
+  ret
+
+bookLoanList endp
+
 ;------- main function ------------------------------------
 main proc far
 
@@ -1758,37 +1792,49 @@ main proc far
   ; login first
   call    login
 
-  ; display menu for user
-  call    printMenu
+  START_MAIN:
+    ; display menu for user
+    call    printMenu
 
-  ; get the choice of main menu from user
-  printStr PrintMenumsg1
-  mov     ah, 01h
-  int     21h
+    ; get the choice of main menu from user
+    printStr PrintMenumsg1
+    mov     ah, 01h
+    int     21h
 
-  cmp     al, "1"
-  je      MEMBER_MENU_OPTION
-  cmp     al, "2"
-  je      CREATE_MEMBER_OPTION
-  cmp     al, "4"
-  je      BOOK_SEARCH_OPTION
+    call   clear     ; no worries register values wont be overriden
 
-  ; all jump to EXIT for now
-  MEMBER_MENU_OPTION:
-    call  memberOptions
-    jmp   EXIT
+    cmp     al, "1"
+    je      MEMBER_MENU_OPTION
+    cmp     al, "2"
+    je      CREATE_MEMBER_OPTION
+    cmp     al, "3"
+    je      SHOW_BOOK_LOAN_OPTION
+    cmp     al, "4"
+    je      BOOK_SEARCH_OPTION
+    cmp     al, "5"
+    je      EXIT_CONFIRMATION_MAIN
+    jmp     START_MAIN
+
+    ; all jump to EXIT for now
+    MEMBER_MENU_OPTION:
+      call  memberOptions
+      jmp   EXIT_CONFIRMATION_MAIN
+    
+    CREATE_MEMBER_OPTION:
+      call  createMem
+      jmp   EXIT_CONFIRMATION_MAIN
+
+    SHOW_BOOK_LOAN_OPTION:
+      call  bookLoanList
+      jmp   EXIT_CONFIRMATION_MAIN
+
+    BOOK_SEARCH_OPTION:
+      call  bookSearch
+      jmp   EXIT_CONFIRMATION_MAIN
+    ; end of real program
   
-  CREATE_MEMBER_OPTION:
-    call  createMem
-    jmp   EXIT
-
-  BOOK_SEARCH_OPTION:
-    call  bookSearch
-    jmp   EXIT
-  ; end of real program
-  
-  ; tell os to end program
-  EXIT:
+  ; TODO: ask user whether to exit the main program
+  EXIT_CONFIRMATION_MAIN:
     mov     ax, 4c00h
     int     21h
 
