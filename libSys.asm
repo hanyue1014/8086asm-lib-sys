@@ -1886,7 +1886,6 @@ quitConfirmMenu proc
   call    newline
   printStr wantToQuitOp2
   call    newline
-  
   ret
 
 quitConfirmMenu endp
@@ -1899,7 +1898,6 @@ main proc far
   mov     ds, ax
   
   ; the real program is actually here
-  
   ; login first
   call    login
 
@@ -1944,7 +1942,7 @@ main proc far
       jmp   EXIT_CONFIRMATION_MAIN
     ; end of real program
   
-  ; TODO: ask user whether to exit the main program
+  ; ask user whether they wanna exit
   EXIT_CONFIRMATION_MAIN:
     call    clearForMain
     
