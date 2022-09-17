@@ -183,6 +183,12 @@
   retLabelTxt     db      " returns <"
   retSuccMsg      db      "Return book success!$"
 
+  ; ---------------- user quit confirmation msgs -------------------------------
+  wantToQuitH     db  "====================================$"
+  wantToQuitM     db  "| Do you want to quit the program? |$"
+  wantToQuitOp1   db  "[Y/y]es$"
+  wantToQuitOp2   db  "Anything else: No$"
+
   ; ---- soon chee's vars (can u label it which function they belong to in the future) ----
   hundred         db 100
   ten             db 10
@@ -354,7 +360,7 @@ endm writeFile
 ;------ END MACRO DECLARATIONS ----------------------------
 
 ;------ FUNCTION DECLARATIONS -----------------------------
-; TODO: when used, increments currRow and sets cursor position to the incremented currRow
+; when used, increments currRow and sets cursor position to the incremented currRow
 ; if currRow >= 18h (max row of dosbox, screen will be scrolled)
 newline proc
 
@@ -380,7 +386,7 @@ newline proc
   setCursP 00h, currRow, currCol
   jmp     END_NEW_LINE
 
-  ; TODO: scroll screen up by 4, subtract 4 from currRow, jump back to increment currRow
+  ; scroll screen up by 4, subtract 5 from currRow, jump back to increment currRow
   NEED_SCROLL_SCREEN:
     ; screen clearing with color
     ; pls prepare ,i want to scroll screen up (06h), scroll 4 lines (04H)
@@ -1115,7 +1121,6 @@ createMem proc
     jnc        CREATE_MEM_EXISTS
     createFile memFileName, 0, fileHandle
     jc         CREATE_MEM_FAIL
-    ; TODO: input ic (validate included), input hp. no., input r. member (Y/N) (royalty member)
     ; format the table by printing dividers in between
     call       writeMemFileDiv
     ; user id field (table heading)
@@ -1855,6 +1860,37 @@ bookLoanList proc
 
 bookLoanList endp
 
+; utility function to clear screen and set cursor position for main proc
+; refactored out as it will be used twice
+clearForMain proc
+
+  call   clear     ; no worries register values wont be overriden
+  mov    currRow, 05h
+  mov    currCol, 0dh
+  setCursP 00h, currRow, currCol
+
+  ret
+
+clearForMain endp
+
+; prints confirmation message menu for user whether they wanna quit or not
+quitConfirmMenu proc
+
+  printStr wantToQuitH
+  call    newline
+  printStr wantToQuitM
+  call    newline
+  printStr wantToQuitH
+  call    newline
+  printStr wantToQuitOp1
+  call    newline
+  printStr wantToQuitOp2
+  call    newline
+  
+  ret
+
+quitConfirmMenu endp
+
 ;------- main function ------------------------------------
 main proc far
 
@@ -1876,10 +1912,7 @@ main proc far
     mov     ah, 01h
     int     21h
 
-    call   clear     ; no worries register values wont be overriden
-    mov    currRow, 05h
-    mov    currCol, 0dh
-    setCursP 00h, currRow, currCol
+    call    clearForMain
 
     cmp     al, "1"
     je      MEMBER_MENU_OPTION
@@ -1913,6 +1946,22 @@ main proc far
   
   ; TODO: ask user whether to exit the main program
   EXIT_CONFIRMATION_MAIN:
+    call    clearForMain
+    
+    call    quitConfirmMenu
+    
+    mov     ah, 07h
+    int     21h
+
+    ; check user input
+    cmp     al, "Y"
+    je      EXIT
+    cmp     al, "y"
+    je      EXIT
+    jmp     START_MAIN    
+
+  ; if not Y/y just quit
+  EXIT:
     mov     ax, 4c00h
     int     21h
 
