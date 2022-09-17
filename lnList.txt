@@ -4,3 +4,8 @@
 [16/09/2022] 123456 loans   <some random book>    
 [16/09/2022] 123456 loans   <some extreme randfom>
 [17/09/2022] 123456 returns <some random book>    
+[17/09/2022] somran loans   <some random book>    
+[17/09/2022] somran returns <some random book>    
+[17/09/2022] somran loans   <som ran>             
+[17/09/2022] somran loans   <harry potter>        
+[17/09/2022] somran returns <harry potter>        

@@ -3,10 +3,17 @@
 
 ;-------------- VARIABLE DECLARATIONS ---------------------
 .data
+  ; common vars for flow handling
+  anyKeyContMsg   db      "Press any key to continue...$"
   ; common vars for formatting
   ; row and column of where the cursor at on screen, defaults to 0
   currRow         db      0
   currCol         db      0
+  ; to let newline know where to where should be colored
+  winRowSt        db      0
+  winRowEnd       db      18h
+  winSizeSt       db      0
+  winSizeEnd      db      4fh
   ; ---------------------- LOGIN VARS ------------------------------
   greetLoginMsg   db      "Welcome, Admin, please enter password: $"
   loginSuccMsg    db      "Login Success!!!$"
@@ -20,7 +27,7 @@
   PrintHeader2    db    " |          Library System         | $"
   PrintHeader3    db     " ==================================$"
 
-  PrintMenumsg1   db     "Enter the process you want to carry >> $"
+  PrintMenuMsg1   db     "Enter the process you want to carry >> $"
   PrintMenu1      db     "1.Member Menu$"
   PrintMenu2      db     "2.Register Member$"
   PrintMenu3      db     "3.Book Loan List$"
@@ -29,27 +36,27 @@
   
   ;=============== data for book search func =====================
   BookSearchHeader1    db     " ==================================$"
-  BookSearchHeader2    db     "|            Book Search          |$"
+  BookSearchHeader2    db     " |           Book Search          |$"
   BookSearchHeader3    db     " ==================================$"
-  BookSearchMenu1      db     "   1 .Computer Science$"
-  BookSearchMenu2      db     "   2 .English$"
-  BookSearchMenu3      db     "   3 .Mathematics$"
-  BookSearchMenu4      db     "   4 .Back$"
-  BookSearchMsg        db     "Enter the action you want to perform>>$"
+  BookSearchMenu1      db     "   1. Computer Science$"
+  BookSearchMenu2      db     "   2. English$"
+  BookSearchMenu3      db     "   3. Mathematics$"
+  BookSearchMenu4      db     "   4. Back$"
+  BookSearchMsg        db     "Enter the category of the book>> $"
   BookSearchUsrInput   db     ?
   Shelf1               db     " 1. C++, 2. Java,  3. C#,  4. Php$"
   Shelf2               db     " 5. Harry Porter, 6. William Shakespeare$"
-  Shelf3               db     " 7.Calculus , 8. statistics, 9. discrete Math$"
-  BookLocation1        db     "Shelf 1 row 2$"
-  BookLocation2        db     "Shelf 1 row 1$"
-  BookLocation3        db     "Shelf 2 row 1$"
-  BookLocation4        db     "Shelf 2 row 4$"
-  BookLocation5        db     "Shelf 3 row 2$"
-  BookLocation6        db     "Shelf 3 row 5$"
-  BookLocation7        db     "Shelf 4 row 6$"
-  BookLocation8        db     "Shelf 5 row 7$"
-  BookLocation9        db     "Shelf 1 row 5$"
-  BookLocationMsg      db     "What location of book do you want to find >>$"
+  Shelf3               db     " 7. Calculus , 8. Statistics, 9. Discrete Math$"
+  BookLocation1        db     " Shelf 1 row 2$"
+  BookLocation2        db     " Shelf 1 row 1$"
+  BookLocation3        db     " Shelf 2 row 1$"
+  BookLocation4        db     " Shelf 2 row 4$"
+  BookLocation5        db     " Shelf 3 row 2$"
+  BookLocation6        db     " Shelf 3 row 5$"
+  BookLocation7        db     " Shelf 4 row 6$"
+  BookLocation8        db     " Shelf 5 row 7$"
+  BookLocation9        db     " Shelf 1 row 5$"
+  BookLocationMsg      db     " Which book's location do you wish to find>> $"
   S1input              db     ?
   S2input              db     ?
   S3input              db     ?
@@ -133,7 +140,8 @@
 
   ; ---------------- VARS FOR MEMBER OPTIONS -----------------------
   memberIDPrompt  db      "Enter the member's ID: $"
-  memberOpPrompt1 db      "Member Options$"
+  memberOpPromptH db      "==========================$"
+  memberOpPrompt1 db      "| Member Options         |$"
   memberOpPrompt2 db      "1. Loan Book$"
   memberOpPrompt3 db      "2. Return Book$"
   memberOpPrompt4 db      "3. Member Details$"
@@ -147,7 +155,7 @@
   ; --------------- MEMBER MENU VARS --------------------------------
   memMenuOpIn     db      ?
   invalidMemOp    db      "Invalid option!$"
-  memberOpRestart db      "Do you want to continue serving this member (Y/N)?$"
+  memberOpRestart db      "Do you want to continue serving this member (Y)es?$"
 
   ; --------------- LOAN AND RETURN BOOK FILE HANDLING VARS ---------
   ; file handle for loan book
@@ -169,9 +177,11 @@
   
   ; --------------- LOAN BOOK VARS ----------------------------------
   loanLabelTxt    db      " loans   <"
+  loanSuccMsg     db      "Loan book success!$"
 
   ; --------------- return book vars --------------------------------
   retLabelTxt     db      " returns <"
+  retSuccMsg      db      "Return book success!$"
 
   ; ---- soon chee's vars (can u label it which function they belong to in the future) ----
   hundred         db 100
@@ -350,6 +360,8 @@ newline proc
 
   
   push    ax
+  push    bx
+  push    cx
   push    dx
   
   ; original behavior (ditched becuz want formatting)
@@ -370,11 +382,22 @@ newline proc
 
   ; TODO: scroll screen up by 4, subtract 4 from currRow, jump back to increment currRow
   NEED_SCROLL_SCREEN:
+    ; screen clearing with color
+    ; pls prepare ,i want to scroll screen up (06h), scroll 4 lines (04H)
+    mov ax, 0604h
+    mov bh, 00011110b
+    sub currRow, 5
+    mov cx, 0000h
+    mov dx, 184fh
+    int 10h
 
+    jmp START_NEW_LINE
 
   END_NEW_LINE:
     
     pop     dx
+    pop     cx
+    pop     bx
     pop     ax
     ret
 newline endp
@@ -531,6 +554,13 @@ printMenu endp
 
 ;=================== Book Search =============================
 bookSearch proc
+call clear
+
+;the following section sets cursor position
+mov currRow, 05			  ; set cursor at row 5 (dec)
+mov currCol, 20		    ;set cursor at column 20 (dec)
+setCursP 00h, currRow, currCol
+
 printStr      BookSearchHeader1
 call          newline
 printStr      BookSearchHeader2
@@ -639,6 +669,10 @@ BLoc9:
     printStr    BookLocation9
     jmp quit
 quit:
+call newline
+printStr anyKeyContMsg
+mov ah, 07h
+int 21h
 ret
 bookSearch endp
 
@@ -943,6 +977,7 @@ getHpNo endp
 getGender proc
 
   START_GENDER_PROMPT:
+    call        newline
     printStr    genderPromptOps
     call        newline
     printStr    genderPromptOp1
@@ -991,6 +1026,7 @@ getGender endp
 getRoyaltyMember proc
 
   START_RM_PROMPT:
+    call        newline
     printStr    rmPromptOps
     call        newline
     printStr    rmPromptOp1
@@ -1099,6 +1135,10 @@ createMem proc
     call       writeMemFileDiv
     ; create success
     printStr   createMemSucc
+    ; wait for the user to see the message, tell them to press any key to continue
+    printStr   anyKeyContMsg
+    mov        ah, 07h
+    int        21h
     jmp        CREATE_MEM_END
   
   ; create file failed, but we can do ntg as of now, maybe just say create file failed and rerun this function
@@ -1139,7 +1179,17 @@ getMember endp
 
 printMemberOptions proc
 
+  call        clear
+	
+	;the following section sets cursor position
+	mov         currRow, 05			  ; set cursor at row 5 (dec)
+	mov         currCol, 20		    ;set cursor at column 20 (dec)
+	setCursP    00h, currRow, currCol
+  printStr    memberOpPromptH
+  call        newline
   printStr    memberOpPrompt1
+  call        newline
+  printStr    memberOpPromptH
   call        newline
   printStr    memberOpPrompt2
   call        newline
@@ -1156,6 +1206,13 @@ printMemberOptions proc
 printMemberOptions endp
 
 printMemDetails proc
+
+  call    clear
+	
+	;the following section sets cursor position
+	mov     currRow, 05			  ; set cursor at row 5 (dec)
+	mov     currCol, 15		    ;set cursor at column 20 (dec)
+  setCursP 00h, currRow, currCol
 
   mov     bx, fileHandle
   call    printFileC
@@ -1236,6 +1293,7 @@ getBook proc
   call    writeFileFail
 
   GET_BOOK_END:
+    call  newline
     ret
 
 getBook endp
@@ -1244,10 +1302,17 @@ getBook endp
 ; assumes lnList.txt already exists on the machine
 memLoanBook proc
 
+  call    clear
+	
+	;the following section sets cursor position
+	mov     currRow, 05			  ; set cursor at row 5 (dec)
+	mov     currCol, 15		    ;set cursor at column 20 (dec)
+  setCursP 00h, currRow, currCol
+
   ; example msg will be [DD/MM/YYYY] XXXXXX loan <20 dup('y')>
   ; where XXXXXX is member ID, 20 dup('y') is book name
   ; open loanBookFileN in write mode, set handle to loanBookFileH
-  openFile  loanBookFileN, 1, loanBookFileH
+  openFile    loanBookFileN, 1, loanBookFileH
   mov     bx, loanBookFileH
   call    moveFileCursEnd
   
@@ -1256,6 +1321,8 @@ memLoanBook proc
   call    writeMemId
   writeFile   loanBookFileH, 10, loanLabelTxt
   call    getBook
+  printStr    loanSuccMsg
+  call    newline
 
   ; rmb to close file ;))
   mov     bx, loanBookFileH
@@ -1294,10 +1361,6 @@ START_CAL_LOAN:
     call     newline
     jmp      START_CAL_LOAN
 
-  call newline
-
-  call newline
-  
   ;convert input to a integer
   VALID_INPUT:
     mov al, 0
@@ -1672,14 +1735,24 @@ START_CAL_LOAN:
         add remain, 30H         ;ready to print the second digit
         printChar quotient
         printChar remain
+        call newline
         ret
 returnCal endp 
 
 ; writes to lnList.txt
 ; assumes lnList.txt already exists on the machine
 memRetBook proc
+
+  call    clear
+	
+	;the following section sets cursor position
+	mov     currRow, 05			  ; set cursor at row 5 (dec)
+	mov     currCol, 15		    ;set cursor at column 20 (dec)
+  setCursP 00h, currRow, currCol
+
   ; calculate the loan first
   call    returnCal
+  call    newline
 
   ; [DD/MM/YYYY] XXXXXX returns <20 dup('y')>
   ; where XXXXXX is member ID, 20 dup('y') is book name
@@ -1693,6 +1766,8 @@ memRetBook proc
   call    writeMemId
   writeFile   loanBookFileH, 10, retLabelTxt
   call    getBook
+  printStr    retSuccMsg
+  call    newline
 
   ; rmb to close file ;))
   mov     bx, loanBookFileH
@@ -1749,7 +1824,7 @@ memberOptions proc
   CONTINUE_CONFIRMATION_MEM_OP:
     printStr  memberOpRestart
     call  newline
-    mov   ah, 01h
+    mov   ah, 07h
     int   21h
     ; shud reloop upon Y or y
     cmp   al, "Y"
@@ -1797,11 +1872,14 @@ main proc far
     call    printMenu
 
     ; get the choice of main menu from user
-    printStr PrintMenumsg1
+    printStr PrintMenuMsg1
     mov     ah, 01h
     int     21h
 
     call   clear     ; no worries register values wont be overriden
+    mov    currRow, 05h
+    mov    currCol, 0dh
+    setCursP 00h, currRow, currCol
 
     cmp     al, "1"
     je      MEMBER_MENU_OPTION
