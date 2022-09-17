@@ -433,6 +433,16 @@ clear proc
   ret
 clear endp
 
+; waits for user to input a key before continuing
+pause proc
+
+  printStr anyKeyContMsg
+  mov ah, 07h
+  int 21h
+  ret
+
+pause endp
+
 ; function for login
 login proc
   call        clear
@@ -500,9 +510,7 @@ login proc
 login endp
 
 printMenu proc
-
   call clear
-	
 	;the following section sets cursor position
 	mov currRow, 05			  ; set cursor at row 5 (dec)
 	mov currCol, 20		    ;set cursor at column 20 (dec)
@@ -524,6 +532,7 @@ call            newline
 	
 printStr        PrintHeader3
 call            newline
+
 mov ah,02h			;pls prepare i want to set cursor position
 mov bh,00h			;set cursur in current video page
 mov dh,10		;set cursor at row 12
@@ -541,19 +550,14 @@ mov currRow, 10
 setCursP 00h, currRow, currCol
 printStr        PrintMenu1
 call            newline
-
 printStr        PrintMenu2
 call            newline
-
 printStr        PrintMenu3
 call            newline
-
 printStr        PrintMenu4
 call            newline
-
 printStr        PrintMenu5
 call            newline
-
 ret
 
 printMenu endp
@@ -561,7 +565,6 @@ printMenu endp
 ;=================== Book Search =============================
 bookSearch proc
 call clear
-
 ;the following section sets cursor position
 mov currRow, 05			  ; set cursor at row 5 (dec)
 mov currCol, 20		    ;set cursor at column 20 (dec)
@@ -582,19 +585,21 @@ call          newline
 printStr      BookSearchMenu4
 call          newline
 printStr      BookSearchMsg
+
 mov ah,01h
 int 21h
 call newline
 mov BookSearchUsrInput,al
 
-    cmp BookSearchUsrInput,"1"
-    je s1
-    cmp BookSearchUsrInput,"2"
-    je middle
-    cmp BookSearchUsrInput,"3"
-    je middle2
-    ;cmp BookSearchUsrInput,3
-    ;jmp shelf3
+cmp BookSearchUsrInput,"1"
+je s1
+cmp BookSearchUsrInput,"2"
+je middle
+cmp BookSearchUsrInput,"3"
+je middle2
+cmp BookSearchUsrInput,"4"
+jmp quit
+
 s1:
     printStr Shelf1
     call newline
@@ -628,8 +633,6 @@ BLoc3:
 BLoc4:
     printStr    BookLocation4
     jmp quit
-
-
 s2:
     printStr  Shelf2
     call newline
@@ -649,7 +652,6 @@ BLoc5:
 BLoc6:
    printStr    BookLocation6
     jmp quit
-
 s3:
     printStr  Shelf3
     call newline
@@ -676,9 +678,7 @@ BLoc9:
     jmp quit
 quit:
 call newline
-printStr anyKeyContMsg
-mov ah, 07h
-int 21h
+call pause
 ret
 bookSearch endp
 
@@ -1141,9 +1141,7 @@ createMem proc
     ; create success
     printStr   createMemSucc
     ; wait for the user to see the message, tell them to press any key to continue
-    printStr   anyKeyContMsg
-    mov        ah, 07h
-    int        21h
+    call       pause
     jmp        CREATE_MEM_END
   
   ; create file failed, but we can do ntg as of now, maybe just say create file failed and rerun this function
@@ -1190,6 +1188,7 @@ printMemberOptions proc
 	mov         currRow, 05			  ; set cursor at row 5 (dec)
 	mov         currCol, 20		    ;set cursor at column 20 (dec)
 	setCursP    00h, currRow, currCol
+
   printStr    memberOpPromptH
   call        newline
   printStr    memberOpPrompt1
@@ -1853,6 +1852,7 @@ bookLoanList proc
   openFile  loanBookFileN, 0, loanBookFileH
   mov     bx, loanBookFileH
   call    printFileC
+  call    pause
   
   mov     bx, loanBookFileH
   call    closeFile
