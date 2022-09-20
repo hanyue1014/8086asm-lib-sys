@@ -1204,7 +1204,6 @@ printMemberOptions proc
   printStr    memberOpPrompt5
   call        newline
   printStr    memberOpPrompt6
-  
   ret
 
 printMemberOptions endp
@@ -1220,7 +1219,6 @@ printMemDetails proc
 
   mov     bx, fileHandle
   call    printFileC
-
   ret
 
 printMemDetails endp
@@ -1748,7 +1746,6 @@ returnCal endp
 memRetBook proc
 
   call    clear
-	
 	;the following section sets cursor position
 	mov     currRow, 05			  ; set cursor at row 5 (dec)
 	mov     currCol, 15		    ;set cursor at column 20 (dec)
@@ -1764,7 +1761,6 @@ memRetBook proc
   openFile  loanBookFileN, 1, loanBookFileH
   mov     bx, loanBookFileH
   call    moveFileCursEnd
-  
   call    writeSysDate
   mov     bx, loanBookFileH
   call    writeMemId
@@ -1776,7 +1772,6 @@ memRetBook proc
   ; rmb to close file ;))
   mov     bx, loanBookFileH
   call    closeFile
-
   ret
 
 memRetBook endp
@@ -1786,7 +1781,7 @@ memberOptions proc
   call    getMember
   MEMBER_OPTIONS:
     cmp     hasMember, 0
-    je      MEMBER_OPTIONS_END
+    je      MEMBER_NOT_EXIST
     call    printMemberOptions
     ; input for option
     mov     ah, 01h
@@ -1842,6 +1837,12 @@ memberOptions proc
     mov   bx, fileHandle
     call  closeFile
     mov   hasMember, 0    ; finished serving a member
+    jmp   MEMBER_OPTIONS_EXIT
+
+  MEMBER_NOT_EXIST:
+    call  pause           ; pause to let the user see the member not exist message (printed by getMember)
+
+  MEMBER_OPTIONS_EXIT:
     ret
 
 memberOptions endp
