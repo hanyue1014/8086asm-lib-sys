@@ -3,6 +3,13 @@
 
 ;-------------- VARIABLE DECLARATIONS ---------------------
 .data
+                         
+   Printimg1      db        ",--.   ,--.       ,--.                                 $"
+   Printimg2      db        "|  |   |  | ,---. |  | ,---. ,---. ,--,--,--. ,---.    $"
+   Printimg3      db        "|  |.'.|  || .-. :|  || .--'| .-. ||        || .-. :   $"
+   Printimg4      db        "|   ,'.   |\   --.|  |\ `--.' '-' '|  |  |  |\   --.   $"
+   Printimg5      db        "'--'   '--' `----'`--' `---' `---' `--`--`--' `----'   $"
+                                                                                
   PrintHeader1    db     " ==================================$"
   PrintHeader2    db    " |          Library System         | $"
   PrintHeader3    db     " ==================================$"
@@ -129,6 +136,55 @@ mov ax,0600h		;pls prepare ,i want to scroll screen up (06h),scroll entire page 
 	mov dl,20		;set cursor at column 39
 	int 10h			;carry out operation
 
+
+
+mov ah,02h			;pls prepare i want to set cursor position
+mov bh,00h			;set cursur in current video page
+mov dh,00			;set cursor at row 12
+mov dl,20		;set cursor at column 39
+int 10h			;carry out operation
+mov ax,0600h
+mov bh,01001110b
+mov ch,00
+mov cl,00           ;window size starts from here 
+mov dh,04
+mov dl,79	;windows size ends here
+int 10h	
+printStr        Printimg1
+call            newline
+mov ah,02h			;pls prepare i want to set cursor position
+mov bh,00h			;set cursur in current video page
+mov dh,01			;set cursor at row 12
+mov dl,20		;set cursor at column 39
+int 10h			;carry out operation
+printStr       Printimg2
+call            newline
+mov ah,02h			;pls prepare i want to set cursor position
+mov bh,00h			;set cursur in current video page
+mov dh,02			;set cursor at row 12
+mov dl,20		;set cursor at column 39
+int 10h			;carry out operation
+printStr        Printimg3
+call            newline
+mov ah,02h			;pls prepare i want to set cursor position
+mov bh,00h			;set cursur in current video page
+mov dh,03			;set cursor at row 12
+mov dl,20		;set cursor at column 39
+int 10h			;carry out operation
+printStr        Printimg4
+call            newline
+mov ah,02h			;pls prepare i want to set cursor position
+mov bh,00h			;set cursur in current video page
+mov dh,04			;set cursor at row 12
+mov dl,20		;set cursor at column 39
+int 10h			;carry out operation
+printStr        Printimg5
+call            newline
+mov ah,02h			;pls prepare i want to set cursor position
+mov bh,00h			;set cursur in current video page
+mov dh,05			;set cursor at row 12
+mov dl,20		;set cursor at column 39
+int 10h			;carry out operation
 mov ax,0600h
 mov bh,11011110b
 mov ch,05
@@ -375,7 +431,7 @@ main proc far
   
   ; the real program is actually here
   
-  call      inputIc
+  call      printMenu
   ; end of real program
   
   ; tell os to end program
