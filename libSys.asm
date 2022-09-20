@@ -364,7 +364,6 @@ endm writeFile
 ; if currRow >= 18h (max row of dosbox, screen will be scrolled)
 newline proc
 
-  
   push    ax
   push    bx
   push    cx
@@ -406,11 +405,11 @@ newline proc
     pop     bx
     pop     ax
     ret
+    
 newline endp
 
 ; when used, scroll by one screen
 clear proc
-
   ; store register data to stack so when end proc the register will have original value
   push    ax
   push    bx
@@ -524,12 +523,11 @@ printMenu proc
   mov dh,07
   mov dl,69	;windows size ends here
   int 10h	
+
 printStr        PrintHeader1
 call            newline
-
 printStr        PrintHeader2
 call            newline
-	
 printStr        PrintHeader3
 call            newline
 
@@ -757,6 +755,7 @@ printFileC proc
 
   PRINT_FILE_END:  
     ret
+
 printFileC endp
 
 ; always close a file if u opened it
@@ -1170,6 +1169,7 @@ getMember proc
   ; go to print menu if member exists
   jnc     GET_MEMBER_EXISTS
   printStr   memNotExistMsg
+  call    newline
   jmp     GET_MEMBER_END
 
   GET_MEMBER_EXISTS:
