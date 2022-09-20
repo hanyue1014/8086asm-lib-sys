@@ -1329,7 +1329,6 @@ memLoanBook proc
   ; rmb to close file ;))
   mov     bx, loanBookFileH
   call    closeFile
-
   ret
 
 memLoanBook endp
@@ -1799,6 +1798,10 @@ memberOptions proc
     je      MEMBER_OPTIONS_END
     jmp     INVALID_MEMBER_OPTION
 
+  MEMBER_NOT_EXIST:
+    call  pause           ; pause to let the user see the member not exist message (printed by getMember)
+    jmp   MEMBER_OPTIONS_EXIT
+
   LOAN_BOOK_OPTION:
     call    memLoanBook
     jmp     CONTINUE_CONFIRMATION_MEM_OP
@@ -1837,10 +1840,6 @@ memberOptions proc
     mov   bx, fileHandle
     call  closeFile
     mov   hasMember, 0    ; finished serving a member
-    jmp   MEMBER_OPTIONS_EXIT
-
-  MEMBER_NOT_EXIST:
-    call  pause           ; pause to let the user see the member not exist message (printed by getMember)
 
   MEMBER_OPTIONS_EXIT:
     ret
