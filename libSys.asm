@@ -519,7 +519,7 @@ printHeader proc
   mov ax,0600h		;pls prepare ,i want to scroll screen up (06h),scroll entire page (00H)
 	mov bh,00011110b			;set bliking effect , bg-red,fg -yellow (1 100 1110)
 	mov cx,0000h		;window size starts from here 
-	mov dx,184fh		;windows size ends here
+	mov dx,184fh		;windows size ends here   
   int 10h			;carry out the operation
 	;the following section show cursor position
 	mov ah,02h			;pls prepare i want to set cursor position
@@ -563,7 +563,7 @@ printHeader proc
   printStr        Printimg4
   call            newline
   mov ah,02h			;pls prepare i want to set cursor position
-  mov bh,00h			;set cursur in current video page 
+  mov bh,00h			;set cursur in current video page
   mov dh,04			;set cursor at row 12
   mov dl,20		;set cursor at column 39
   int 10h			;carry out operation
@@ -574,11 +574,18 @@ printHeader proc
   mov dh,05			;set cursor at row 12
   mov dl,20		;set cursor at column 39
   int 10h			;carry out operation
+  mov ax,0600h
+  mov bh,11011110b
+  mov ch,05
+  mov cl,15           ;window size starts from here 
+  mov dh,07
+  mov dl,69	;windows size ends here
+  int 10h	
   ret
 printHeader endp
 
 printMenu proc
-  call clear
+  ;call clear
 	;the following section sets cursor position
 	mov currRow, 05			  ; set cursor at row 5 (dec)
 	mov currCol, 20		    ;set cursor at column 20 (dec)
