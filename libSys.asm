@@ -530,10 +530,10 @@ printHeader proc
   mov ah,02h			;pls prepare i want to set cursor position
   mov bh,00h			;set cursur in current video page
   mov dh,00			;set cursor at row 12
-  mov dl,20		;set cursor at column 39
+  mov dl,17		;set cursor at column 36
   int 10h			;carry out operation
   mov ax,0600h
-  mov bh,01001110b
+  mov bh,00011110b
   mov ch,00
   mov cl,00           ;window size starts from here 
   mov dh,04
@@ -544,35 +544,35 @@ printHeader proc
   mov ah,02h			;pls prepare i want to set cursor position
   mov bh,00h			;set cursur in current video page
   mov dh,01			;set cursor at row 12
-  mov dl,20		;set cursor at column 39
+  mov dl,17		;set cursor at column 36
   int 10h			;carry out operation
   printStr       Printimg2
   call            newline
   mov ah,02h			;pls prepare i want to set cursor position
   mov bh,00h			;set cursur in current video page
   mov dh,02			;set cursor at row 12
-  mov dl,20		;set cursor at column 39
+  mov dl,17		;set cursor at column 36
   int 10h			;carry out operation
   printStr        Printimg3
   call            newline
   mov ah,02h			;pls prepare i want to set cursor position
   mov bh,00h			;set cursur in current video page
   mov dh,03			;set cursor at row 12
-  mov dl,20		;set cursor at column 39
+  mov dl,17		;set cursor at column 36
   int 10h			;carry out operation
   printStr        Printimg4
   call            newline
   mov ah,02h			;pls prepare i want to set cursor position
   mov bh,00h			;set cursur in current video page
   mov dh,04			;set cursor at row 12
-  mov dl,20		;set cursor at column 39
+  mov dl,17 	;set cursor at column 36
   int 10h			;carry out operation
   printStr        Printimg5
   call            newline
   mov ah,02h			;pls prepare i want to set cursor position
   mov bh,00h			;set cursur in current video page
   mov dh,05			;set cursor at row 12
-  mov dl,20		;set cursor at column 39
+  mov dl,17		;set cursor at column 36
   int 10h			;carry out operation
   mov ax,0600h
   mov bh,11011110b
