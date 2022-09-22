@@ -569,6 +569,11 @@ printHeader proc
   int 10h			;carry out operation
   printStr        Printimg5
   call            newline
+  mov ah,02h			;pls prepare i want to set cursor position
+  mov bh,00h			;set cursur in current video page
+  mov dh,05			;set cursor at row 12
+  mov dl,20		;set cursor at column 39
+  int 10h			;carry out operation
   ret
 printHeader endp
 
