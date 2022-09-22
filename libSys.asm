@@ -22,6 +22,13 @@
   passBuf         db      9 dup(?)
   password        db      "abcd1234", 0
   
+  ; PRINT HEADER VARS
+  Printimg1      db        ",--.   ,--.       ,--.                                 $"
+  Printimg2      db        "|  |   |  | ,---. |  | ,---. ,---. ,--,--,--. ,---.    $"
+  Printimg3      db        "|  |.'.|  || .-. :|  || .--'| .-. ||        || .-. :   $"
+  Printimg4      db        "|   ,'.   |\   --.|  |\ `--.' '-' '|  |  |  |\   --.   $"
+  Printimg5      db        "'--'   '--' `----'`--' `---' `---' `--`--`--' `----'   $"
+  
   ; PRINT MENU VARS
   PrintHeader1    db     " ==================================$"
   PrintHeader2    db    " |          Library System         | $"
@@ -507,6 +514,63 @@ login proc
     printStr    loginSuccMsg
   ret
 login endp
+
+printHeader proc 
+  mov ax,0600h		;pls prepare ,i want to scroll screen up (06h),scroll entire page (00H)
+	mov bh,00011110b			;set bliking effect , bg-red,fg -yellow (1 100 1110)
+	mov cx,0000h		;window size starts from here 
+	mov dx,184fh		;windows size ends here
+  int 10h			;carry out the operation
+	;the following section show cursor position
+	mov ah,02h			;pls prepare i want to set cursor position
+	mov bh,00h			;set cursur in current video page
+	mov dh,05			;set cursor at row 12
+	mov dl,20		;set cursor at column 39
+	int 10h			;carry out operation
+  mov ah,02h			;pls prepare i want to set cursor position
+  mov bh,00h			;set cursur in current video page
+  mov dh,00			;set cursor at row 12
+  mov dl,20		;set cursor at column 39
+  int 10h			;carry out operation
+  mov ax,0600h
+  mov bh,01001110b
+  mov ch,00
+  mov cl,00           ;window size starts from here 
+  mov dh,04
+  mov dl,79	;windows size ends here
+  int 10h	
+  printStr        Printimg1
+  call            newline
+  mov ah,02h			;pls prepare i want to set cursor position
+  mov bh,00h			;set cursur in current video page
+  mov dh,01			;set cursor at row 12
+  mov dl,20		;set cursor at column 39
+  int 10h			;carry out operation
+  printStr       Printimg2
+  call            newline
+  mov ah,02h			;pls prepare i want to set cursor position
+  mov bh,00h			;set cursur in current video page
+  mov dh,02			;set cursor at row 12
+  mov dl,20		;set cursor at column 39
+  int 10h			;carry out operation
+  printStr        Printimg3
+  call            newline
+  mov ah,02h			;pls prepare i want to set cursor position
+  mov bh,00h			;set cursur in current video page
+  mov dh,03			;set cursor at row 12
+  mov dl,20		;set cursor at column 39
+  int 10h			;carry out operation
+  printStr        Printimg4
+  call            newline
+  mov ah,02h			;pls prepare i want to set cursor position
+  mov bh,00h			;set cursur in current video page 
+  mov dh,04			;set cursor at row 12
+  mov dl,20		;set cursor at column 39
+  int 10h			;carry out operation
+  printStr        Printimg5
+  call            newline
+  ret
+printHeader endp
 
 printMenu proc
   call clear
@@ -1902,7 +1966,8 @@ main proc far
   call    login
 
   START_MAIN:
-    ; display menu for user
+    ; display header and menu for user
+    call    printHeader
     call    printMenu
 
     ; get the choice of main menu from user
